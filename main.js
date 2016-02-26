@@ -82,16 +82,61 @@ var fluent = function() {
     return intern.fluentStart;
 };
 
+var packet = fluent;
 
-console.log(fluent().field("tcp.aaa"));
-console.log(fluent().field());
-console.log(fluent().field().tcp());
-console.log(fluent().field().tcp().srcport());
-console.log(fluent().field().tcp().srcport().equals(80)({}));
-console.log(fluent().has());
-console.log(fluent().has().field());
-console.log(fluent().has().field().tcp());
-console.log(fluent().has().field().tcp().dstport()({}));
+
+console.log(packet().field("tcp.aaa"));
+console.log(packet().field());
+console.log(packet().field().tcp());
+console.log(packet().field().tcp().srcport());
+console.log(packet().field().tcp().srcport().equals(80)({}));
+console.log(packet().has());
+console.log(packet().has().field());
+console.log(packet().has().field().tcp());
+console.log(packet().has().field().tcp().dstport()({}));
+
+
+var fluent2 = function(){
+    var intern = {};
+
+    intern.fluentOperators = {
+        "and" : function() {
+
+
+        }
+
+
+    };
+
+    intern.fluentActions = {
+        "then" : function(f) {
+
+
+        }
+
+    };
+
+     intern.fluentStart = {
+         "props" : new Object(),
+         "matchOn": function(rule) {
+            if(!this.props.rules) {
+                this.props.rules=[rule];
+            } else {
+                this.props.rules.push(rule);
+            }
+
+            return extend({props: this.props},intern.fluentActions,intern.fluentOperators);
+         }
+
+
+     };
+
+    return intern.fluentStart;
+
+};
+
+var when = fluent2;
+
 
 var parser = new pdml();
 parser.parseFile("./example.pdml",function(packets) {
