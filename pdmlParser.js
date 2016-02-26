@@ -31,6 +31,9 @@ var PdmlParser = function(file) {
                             }
                         }
 
+                        if(res.geninfo && res.geninfo.num) {
+                            res.id= res.geninfo.num;
+                        }
                        packets.push(res);
                     }
 
