@@ -26,8 +26,8 @@ var printId = function(pref) {
 
 var rules = {
     0: new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")),
-    1: new Matcher.Rule(packet().has().field("http"), function(packet,packets){
-        console.log("rule2:",packet.id,packets[0].id);
+    1: new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
+        console.log("rule2:",packet.id,lastpacket.id);
     })
 } ;
 

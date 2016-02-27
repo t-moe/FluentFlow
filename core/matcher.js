@@ -29,13 +29,13 @@ module.exports =  function() {
                log("request push from "+ from +" to "+to +" params ",params);
                if (pushTo[to]) {
                    if (pushTo[to][from]) {
-                       pushTo[to][from].push(params.slice());
+                       pushTo[to][from].push(params);
                    } else {
-                       pushTo[to][from] = [params.slice()];
+                       pushTo[to][from] = [params];
                    }
                } else {
                    pushTo[to] ={};
-                   pushTo[to][from]= [params.slice()];
+                   pushTo[to][from]= [params];
                }
            };
 
@@ -54,7 +54,7 @@ module.exports =  function() {
                        if (ruleDef.rule == null || ruleDef.rule(packet)) { //rule matches or no matcher set
                            if (ruleDef.params.length == 0) {
                                if (ruleDef.action) {
-                                   ruleDef.action(packet, new Array());
+                                   ruleDef.action(packet);
                                }
                                if (ruleDef.pushTo.length > 0) {
                                    for (var k in ruleDef.pushTo) {
@@ -71,13 +71,13 @@ module.exports =  function() {
                            } else {
                                while (ruleDef.params.length > 0) {
                                    var param = ruleDef.params.shift();
+                                   param.unshift(packet); //add front
                                    if (ruleDef.action) {
-                                       ruleDef.action(packet, param);
+                                       ruleDef.action.apply(this,param);
                                    }
 
                                    if (ruleDef.pushTo.length > 0) {
-                                       param = param.slice();
-                                       param.push(packet);
+
                                        for (var k in ruleDef.pushTo) {
                                            var toWhere = ruleDef.pushTo[k];
                                            pushPacketTo(ruleId, toWhere, param);

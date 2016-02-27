@@ -77,13 +77,13 @@ exports.testPushTo = function(test) {
         } ),
         2 : new Matcher.Rule(function(p) {
             return p.foo==3
-        }, function(p,ps) {
-            matches[2].push([p,ps]);
+        }, function(p,lp) {
+            matches[2].push(Array.prototype.slice.call(arguments));
         } ),
         3 : new Matcher.Rule(function(p) {
             return p.bar==88
-        }, function(p,ps) {
-            matches[3].push([p,ps]);
+        }, function(p,lp) {
+            matches[3].push(Array.prototype.slice.call(arguments));
         } )
     };
     rules[0].pushTo.push(2);
@@ -100,13 +100,13 @@ exports.testPushTo = function(test) {
             {bar:7, foo:3},
             {bar:13},
             {bar:88} ],
-        2: [[{foo: 3, bar: 3},[{ foo: 1 }]],
-            [{bar:7, foo:3},[{foo: 3, bar: 3}]],
-            [{bar:7, foo:3},[{ bar: 1 }]]],
-        3: [[{bar:88},[{ foo: 1 }]],
-            [{bar:88},[{ foo: 1 },{foo: 3, bar: 3}]],
-            [{bar:88},[{foo: 3, bar: 3},{bar:7, foo:3}]],
-            [{bar:88},[{ bar: 1 },{bar:7, foo:3}]]]
+        2: [[{foo: 3, bar: 3},{ foo: 1 }],
+            [{bar:7, foo:3},{foo: 3, bar: 3}],
+            [{bar:7, foo:3},{ bar: 1 }]],
+        3: [[{bar:88},{ foo: 1 }],
+            [{bar:88},{foo: 3, bar: 3},{ foo: 1 }],
+            [{bar:88},{bar:7, foo:3},{foo: 3, bar: 3}],
+            [{bar:88},{bar:7, foo:3},{ bar: 1 }]]
     };
 
 
