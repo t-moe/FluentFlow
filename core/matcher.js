@@ -22,6 +22,8 @@ module.exports =  function() {
        };
 
        this.matchNext = function (packet) {
+           log("new packet",packet);
+
            var pushTo = new Object();
            var unpushTo = new Object();
 
@@ -47,53 +49,50 @@ module.exports =  function() {
                }
            };
 
+           var afterMatch = function(ruleDef, ruleId, params) {
+               if (ruleDef.action) {
+                   ruleDef.action.apply(this,params.slice());
+               }
+               if (ruleDef.pushTo.length > 0) {
+                   for (var k in ruleDef.pushTo) {
+                       var toWhere = ruleDef.pushTo[k];
+                       pushPacketTo(ruleId, toWhere, params.slice());
+                   }
+               }
+               if (ruleDef.unpushFromTo.length > 0) {
+                   for (var k in ruleDef.unpushFromTo) {
+                       var entry = ruleDef.unpushFromTo[k];
+                       unpushPacketTo(entry.from, entry.to);
+                   }
+               }
+           };
+
            for (var ruleId in this.rules) {
                var ruleDef = this.rules[ruleId];
-               if (!ruleDef.conditional || ruleDef.params.length > 0) {
-                   if (ruleDef.rule == null || ruleDef.rule.length == 1 || ruleDef.params.length == 0) { //rule checker doesn't care about the previous matches in chain (= it has only one param)
+               if (!ruleDef.conditional || ruleDef.params.length > 0) { //Rule must be processed
+                   if (ruleDef.rule == null || ruleDef.rule.length == 1 || ruleDef.params.length == 0) { //rule checker doesn't care about the previous matches in chain (e.g. because it takes only one parameter)
                        if (ruleDef.rule == null || ruleDef.rule(packet)) { //rule matches or no matcher set
-                           if (ruleDef.params.length == 0) {
-                               if (ruleDef.action) {
-                                   ruleDef.action(packet);
-                               }
-                               if (ruleDef.pushTo.length > 0) {
-                                   for (var k in ruleDef.pushTo) {
-                                       var toWhere = ruleDef.pushTo[k];
-                                       pushPacketTo(ruleId, toWhere, [packet]);
-                                   }
-                               }
-                               if (ruleDef.unpushFromTo.length > 0) {
-                                   for (var k in ruleDef.unpushFromTo) {
-                                       var entry = ruleDef.unpushFromTo[k];
-                                       unpushPacketTo(entry.from, entry.to);
-                                   }
-                               }
-                           } else {
+                           log("match on rule "+ruleId);
+                           if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
+                               afterMatch(ruleDef,ruleId,[packet]); //Call action, apply pushTo and unpushTo
+                           } else { //Arguments available. Call action once per argument
                                while (ruleDef.params.length > 0) {
-                                   var param = ruleDef.params.shift();
-                                   param.unshift(packet); //add front
-                                   if (ruleDef.action) {
-                                       ruleDef.action.apply(this,param);
-                                   }
-
-                                   if (ruleDef.pushTo.length > 0) {
-
-                                       for (var k in ruleDef.pushTo) {
-                                           var toWhere = ruleDef.pushTo[k];
-                                           pushPacketTo(ruleId, toWhere, param);
-                                       }
-                                   }
-                                   if (ruleDef.unpushFromTo.length > 0) {
-                                       for (var k in ruleDef.unpushFromTo) {
-                                           var entry = ruleDef.unpushFromTo[k];
-                                           unpushPacketTo(entry.from, entry.to);
-                                       }
-                                   }
+                                   var param = ruleDef.params.shift(); //remove first argument and process it
+                                   param.unshift(packet); //add packet front
+                                   afterMatch(ruleDef,ruleId,param); //Call action, apply pushTo and unpushTo
                                }
                            }
                        }
                    } else { //rule checker care's about previous packets
-                        throw new Error(); //TODO: implement!!
+                       for(var i=0; i < ruleDef.params.length; i++) {
+                           var param = ruleDef.params[i].slice(); //copy param!
+                           param.unshift(packet); //add packet front
+                           if(ruleDef.rule.apply(this,param)) { //rule matches
+                               log("match on rule "+ruleId+" with param", param);
+                               ruleDef.params.splice(i--,1); //remove argument from ruleDef because it matched
+                               afterMatch(ruleDef,ruleId,param); //Call action, apply pushTo and unpushTo
+                           }
+                       }
                    }
                }
            }
