@@ -1,8 +1,11 @@
 /**
  * Created by Timo on 26.02.2016.
  */
+completeAssign = require('mini-complete-assign');
 
-var extend = Object.assign;
+
+
+var extend = completeAssign;
 
 var fluent = function() {
     var intern = {};
@@ -56,7 +59,7 @@ var fluent = function() {
                 return intern.packetGetField(packet,obj.props.field)!=null;
             },{props:obj.props},subfields);
         } else {
-            return extend({props:obj.props}, intern.fluentOperators, subfields)
+            return extend({props:obj.props}, intern.fluentOperators, subfields || {})
         }
 
     };
@@ -109,42 +112,58 @@ console.log(packet().has().field().tcp());
 console.log(packet().has().field().tcp().dstport()({}));*/
 
 
+
 var fluent2 = function(){
-    var intern = {};
+    var intern = {
+        numRules : 0
+    };
+
 
     intern.fluentOperators = {
-        "and" : function() {
-
-
+         get and() {
+             var lastStep = this.steps[this.steps.length-1];
+             lastStep.optr = "and";
+             return extend({steps: this.steps},intern.fluentActions);
+        },
+        get or() {
+            var lastStep = this.steps[this.steps.length-1];
+            lastStep.optr = "or";
+            return extend({steps: this.steps},intern.fluentActions);
         }
-
-
     };
 
-    intern.fluentActions = {
+    intern.fluentTerminators = {
         "then" : function(f) {
-
-
+            if(typeof(f)!="function") throw new Error("first parameter must be a function");
+            var lastStep = this.steps[this.steps.length-1];
+            lastStep.actions.push(f);
+            return this;
+        },
+        get followedBy() {
+            this.steps.push({ //adding an empty step
+                rules: [], //without any rules
+                    actions: [] //without any actions
+            });
+            return extend({steps: this.steps},intern.fluentActions);
         }
-
     };
-
-    intern.fluentStart = {
-        "props" : new Object(),
+    intern.fluentActions = {
         "matchOn": function(rule) {
-            if(!this.props.rules) {
-                this.props.rules=[rule];
-            } else {
-                this.props.rules.push(rule);
-            }
-
-            return extend({props: this.props},intern.fluentActions,intern.fluentOperators);
+            var id = intern.numRules++;
+            var lastStep = this.steps[this.steps.length-1];
+            lastStep.rules[id] = rule;
+            return extend({steps: this.steps},intern.fluentTerminators,intern.fluentOperators);
         }
-
-
     };
 
-    return intern.fluentStart;
+
+    return  extend({
+        "steps" : [{ //adding an empty step
+            rules: [], //without any rules
+            actions: [] //without any actions
+        }]
+    },intern.fluentActions);
+
 
 };
 

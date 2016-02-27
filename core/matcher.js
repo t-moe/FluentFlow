@@ -12,9 +12,12 @@ module.exports =  function() {
 
        this.addRules = function (rules) {
            if (!(this.rules)) {
-               this.rules = [];
+               this.rules = {};
            }
            Object.assign(this.rules,rules);
+           for(var i in this.rules) {
+               this.rules[i].id = i;
+           }
        };
 
        this.clearRules = function() {
@@ -25,7 +28,7 @@ module.exports =  function() {
            log("new packet",packet);
 
            var pushTo = new Object();
-           var unpushTo = new Object();
+           //var unpushTo = new Object();
 
            var pushPacketTo = function (from, to, params) {
                log("request push from "+ from +" to "+to +" params ",params);
@@ -41,15 +44,16 @@ module.exports =  function() {
                }
            };
 
-           var unpushPacketTo = function (from, to) {
+           /*var unpushPacketTo = function (from, to) {
                if (unpushTo[to]) {
                    unpushTo[to][from] = true;
                } else {
                    unpushTo[to] = {from: true};
                }
-           };
+           };*/
 
-           var afterMatch = function(ruleDef, ruleId, params) {
+           var afterMatch = function(ruleDef, params) {
+               var ruleId = ruleDef.id;
                if (ruleDef.action) {
                    ruleDef.action.apply(this,params.slice());
                }
@@ -59,12 +63,12 @@ module.exports =  function() {
                        pushPacketTo(ruleId, toWhere, params.slice());
                    }
                }
-               if (ruleDef.unpushFromTo.length > 0) {
+               /*if (ruleDef.unpushFromTo.length > 0) {
                    for (var k in ruleDef.unpushFromTo) {
                        var entry = ruleDef.unpushFromTo[k];
                        unpushPacketTo(entry.from, entry.to);
                    }
-               }
+               }*/
            };
 
            for (var ruleId in this.rules) {
@@ -74,12 +78,12 @@ module.exports =  function() {
                        if (ruleDef.rule == null || ruleDef.rule(packet)) { //rule matches or no matcher set
                            log("match on rule "+ruleId);
                            if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
-                               afterMatch(ruleDef,ruleId,[packet]); //Call action, apply pushTo and unpushTo
+                               afterMatch(ruleDef,[packet]); //Call action, apply pushTo and unpushTo
                            } else { //Arguments available. Call action once per argument
                                while (ruleDef.params.length > 0) {
                                    var param = ruleDef.params.shift(); //remove first argument and process it
                                    param.unshift(packet); //add packet front
-                                   afterMatch(ruleDef,ruleId,param); //Call action, apply pushTo and unpushTo
+                                   afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
                                }
                            }
                        }
@@ -90,7 +94,7 @@ module.exports =  function() {
                            if(ruleDef.rule.apply(this,param)) { //rule matches
                                log("match on rule "+ruleId+" with param", param);
                                ruleDef.params.splice(i--,1); //remove argument from ruleDef because it matched
-                               afterMatch(ruleDef,ruleId,param); //Call action, apply pushTo and unpushTo
+                               afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
                            }
                        }
                    }
@@ -99,9 +103,9 @@ module.exports =  function() {
 
            for (var toWhere in pushTo) {
                var pushFrom = pushTo[toWhere];
-               var unpushFrom = unpushTo[toWhere];
+              // var unpushFrom = unpushTo[toWhere];
                for (var fromWhere in pushFrom) {
-                   if (unpushFrom && unpushFrom[fromWhere] === true) continue;
+                   //if (unpushFrom && unpushFrom[fromWhere] === true) continue;
                    var params = pushFrom[fromWhere];
                    log("before pushing from "+fromWhere+" to "+toWhere,params);
                    for (var ind in params)
@@ -113,12 +117,13 @@ module.exports =  function() {
 
    };
     obj.Rule = function(rule,action) {
+        this.id = 0; //The id of the rule (will be autofilled after calling addRules())
         this.conditional = false; //if set to true the rule will only be executed if there are params available
         this.params = new Array(); //params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
         this.rule = rule?rule:null; //rule check function. First parameter: Current Packet, Second Parameter: array of the previous packets down the chain
         this.action=action?action:null; //action handler function which will be called on match. First parameter: Current Packet, Second Parameter: array of the previous packets down the chain
         this.pushTo = new Array(); //ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
-        this.unpushFromTo = new Object(); //pushes to undo. an entry must be an object with the properties from, to (both id's).
+        //this.unpushFromTo = new Object(); //pushes to undo. an entry must be an object with the properties from, to (both id's).
     };
     return obj;
 }();

@@ -1,10 +1,11 @@
 {
-    "name": "application-name",
-    "version": "0.0.1",
-    "dependencies" : {
-        "xml2js": "latest"
-    },
-	"devDependencies" : {
-		"nodeunit": "latest"
-	}
+  "name": "application-name",
+  "version": "0.0.1",
+  "dependencies": {
+    "mini-complete-assign": "0.0.1",
+    "xml2js": "latest"
+  },
+  "devDependencies": {
+    "nodeunit": "latest"
+  }
 }
