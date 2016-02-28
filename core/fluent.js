@@ -1,7 +1,8 @@
 /**
  * Created by Timo on 26.02.2016.
  */
-completeAssign = require('mini-complete-assign');
+var completeAssign = require('mini-complete-assign');
+var Matcher = require("../core/matcher.js");
 
 
 
@@ -114,9 +115,7 @@ console.log(packet().has().field().tcp().dstport()({}));*/
 
 
 var fluent2 = function(){
-    var intern = {
-        numRules : 0
-    };
+    var intern = { };
 
 
     intern.fluentOperators = {
@@ -141,17 +140,16 @@ var fluent2 = function(){
         },
         get followedBy() {
             this.steps.push({ //adding an empty step
-                rules: [], //without any rules
-                    actions: [] //without any actions
+                rules: new Matcher.Set(), //without any rules
+                actions: [] //without any actions
             });
             return extend({steps: this.steps},intern.fluentActions);
         }
     };
     intern.fluentActions = {
         "matchOn": function(rule) {
-            var id = intern.numRules++;
             var lastStep = this.steps[this.steps.length-1];
-            lastStep.rules[id] = rule;
+            lastStep.rules.append(rule);
             return extend({steps: this.steps},intern.fluentTerminators,intern.fluentOperators);
         }
     };
@@ -159,7 +157,7 @@ var fluent2 = function(){
 
     return  extend({
         "steps" : [{ //adding an empty step
-            rules: [], //without any rules
+            rules: new Matcher.Set(), //without any rules
             actions: [] //without any actions
         }]
     },intern.fluentActions);

@@ -24,7 +24,7 @@ var printId = function(pref) {
     }
 };
 
-var rules = {
+/*var rules = {
     0: new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")),
     1: new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
         console.log("rule2:",packet.id,lastpacket.id);
@@ -32,7 +32,16 @@ var rules = {
 } ;
 
 rules[1].conditional = true;
-rules[0].pushTo = [1];
+rules[0].pushTo = [1];*/
+
+var r1 = new Matcher.Set(new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")));
+r1.pushTo(new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
+    console.log("rule2:",packet.id,lastpacket.id);
+}));
+
+var rules = new Matcher.Builder(r1).rules;
+
+console.log(rules);
 
 
 var matcher = new Matcher();
@@ -53,6 +62,7 @@ parser.parseFile("./example.pdml",function(packets) {
 
         //console.log(packet.id);
         //when().matchOn("get to host 1 ").and().matchOn("http download from host 1").then(print);
+        //when().matchOn("dstport=80").andSameHost.matchOn("download x").andSameHost.
         //when().matchOn("http get from host x").followedBy().matchOn("send data to host x").then(print)
         //when().either().matchOn().followedBy().matchOn().or().matchOn("rerer").then(print)
 

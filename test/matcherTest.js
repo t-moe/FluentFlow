@@ -238,3 +238,72 @@ exports.testComplexMatch = function(test) {
 
     test.done();
 };
+
+exports.testSet = function(test) {
+
+    {
+        var r1 = new Matcher.Rule();
+        var r2 = new Matcher.Rule();
+        var r3 = new Matcher.Rule();
+        var r4 = new Matcher.Rule();
+
+        var set = new Matcher.Set(r1);
+        test.equal(set.size(), 1);
+        test.equal(set.at(0), r1);
+
+        set.append(r2, r3);
+        test.equal(set.size(), 3);
+        test.equal(set.at(1), r2);
+        test.equal(set.at(2), r3);
+
+        set.pushTo(r4);
+        test.deepEqual(r1.pushTo, [r4]);
+        test.deepEqual(r2.pushTo, [r4]);
+        test.deepEqual(r3.pushTo, [r4]);
+        test.equal(r4.conditional, true);
+
+        var r5 = new Matcher.Rule();
+        var r6 = new Matcher.Rule();
+        var r7 = new Matcher.Rule();
+        var set2 = new Matcher.Set(r5,r6);
+        var ret = set2.receiveFrom(r7,set);
+
+        test.equals(ret.size(),4);
+        test.deepEqual(r7.pushTo,[r5,r6]);
+        test.deepEqual(r1.pushTo, [r4,r5,r6]);
+        test.deepEqual(r2.pushTo, [r4,r5,r6]);
+        test.deepEqual(r3.pushTo, [r4,r5,r6]);
+        test.equal(r5.conditional, true);
+        test.equal(r6.conditional, true);
+    }
+
+    {
+
+        var r1 = new Matcher.Rule();
+        var r2 = new Matcher.Rule();
+        var r3 = new Matcher.Rule();
+        var r4 = new Matcher.Rule();
+        var r5 = new Matcher.Rule();
+        var r6 = new Matcher.Rule();
+        var r7 = new Matcher.Rule();
+
+        var set = new Matcher.Set(r1, r2);
+        var set2 = new Matcher.Set(r3, r4);
+        var ret1= set.pushTo(r5,set2,r6);
+        var ret2 = set.pushTo(r6); //test if no duplicates are added
+
+        test.deepEqual(ret1.size(),4);
+        test.deepEqual(ret2.at(0),r6);
+        test.deepEqual(r1.pushTo,[r5,r3,r4,r6]);
+        test.deepEqual(r2.pushTo,[r5,r3,r4,r6]);
+        test.equal(r3.conditional, true);
+        test.equal(r4.conditional, true);
+        test.equal(r5.conditional, true);
+        test.equal(r6.conditional, true);
+
+    }
+
+
+    test.done();
+
+};

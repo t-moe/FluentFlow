@@ -117,13 +117,131 @@ module.exports =  function() {
 
    };
     obj.Rule = function(rule,action) {
-        this.id = 0; //The id of the rule (will be autofilled after calling addRules())
+        this.id = null; //The id of the rule (will be autofilled after calling addRules())
         this.conditional = false; //if set to true the rule will only be executed if there are params available
         this.params = new Array(); //params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
         this.rule = rule?rule:null; //rule check function. First parameter: Current Packet, Second Parameter: array of the previous packets down the chain
         this.action=action?action:null; //action handler function which will be called on match. First parameter: Current Packet, Second Parameter: array of the previous packets down the chain
         this.pushTo = new Array(); //ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
         //this.unpushFromTo = new Object(); //pushes to undo. an entry must be an object with the properties from, to (both id's).
+    };
+
+    obj.Set = function() {
+        this.data = [];
+        this.append = function () {
+            for (var i in arguments) {
+                var arg = arguments[i];
+                if(arg instanceof obj.Set) {
+                    for(var k in arg.data) {
+                        this.data.push(arg.data[k]);
+                    }
+                } else if(arg instanceof obj.Rule) {
+                    this.data.push(arg);
+                } else {
+                    throw new Error("invalid argument type");
+                }
+            }
+        };
+        this.at = function(i) {
+          return this.data[i];
+        };
+        this.removeAt = function(i) {
+            return this.data.splice(i,1);
+        };
+        this.size = function() {
+          return this.data.length;
+        };
+
+        this.pushTo = function(s) {
+            for(var k in this.data) {
+                var where = this.data[k];
+                for (var i in arguments) {
+                    var what = arguments[i];
+                    if(what instanceof obj.Set) {
+                        what.receiveFrom(where);
+                    } else if (what instanceof obj.Rule){
+                        what.conditional = true;
+                        if (where.pushTo.indexOf(what) == -1) {
+                            where.pushTo.push(what);
+                        }
+                    } else {
+                        throw new Error("invalid argument type");
+                    }
+                }
+            }
+            var n = new obj.Set();
+            n.append.apply(n,arguments);
+            return n;
+        };
+
+        this.receiveFrom = function(){
+            for(var k in this.data) {
+                var what = this.data[k];
+                what.conditional = true;
+                for (var i in arguments) {
+                    var where = arguments[i];
+                    if(where instanceof obj.Set) {
+                        where.pushTo(what);
+                    } else if(where instanceof obj.Rule) {
+                        if (where.pushTo.indexOf(what) == -1) {
+                            where.pushTo.push(what);
+                        }
+                    } else {
+                        throw new Error("invalid argument type");
+                    }
+                }
+            }
+            var n = new obj.Set();
+            n.append.apply(n,arguments);
+            return n;
+        };
+
+        this.setAction = function(f) {
+            if(typeof(f)!=="function") throw new Error("argument must be a function");
+            for(var k in this.data) {
+                var d = this.data[k];
+                if(d.action) throw new Error("Action already set");
+                d.action = f;
+            }
+        }
+
+       this.append.apply(this,arguments);
+
+    };
+
+    obj.Builder = function() {
+        this.rules = [];
+        this.append = function() {
+            for (var i in arguments) {
+                var arg = arguments[i];
+                if(arg instanceof obj.Set) {
+                    for(var k in arg.data) {
+                        this.assign(arg.data[k]);
+                    }
+                } else if(arg instanceof obj.Rule) {
+                    this.assign(arg);
+                } else {
+                    throw new Error("invalid argument type");
+                }
+            }
+        };
+        this.assign = function(rule) {
+            if(rule.id!=null) return;
+            rule.id=this.rules.length;
+            this.rules.push(rule);
+            for(var i=0; i<rule.pushTo.length; i++) {
+                var pushToRule = rule.pushTo[i];
+                if(pushToRule instanceof obj.Rule) {
+                    rule.pushTo[i] =this.assign(pushToRule); //replace rule with integer
+                } else if(typeof(pushToRule)!=="number") {
+                    throw new Error("invalid type in rule.pushto");
+                }
+            }
+            return rule.id;
+        };
+
+        this.append.apply(this,arguments);
+
     };
     return obj;
 }();
