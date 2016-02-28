@@ -4,58 +4,24 @@
 var PdmlParser = require("./parsers/pdmlParser.js")
 var Matcher = require("./core/matcher.js")
 
-var Fluent = require("./core/fluent.js")
+/*var Fluent = require("./core/fluent.js")
 var packet = Fluent.packet;
-var when = Fluent.when;
+var when = Fluent.when;*/
 
 
-
-
-
-
-
-var printId = function(pref) {
-    return function(p) {
-        if(pref) {
-            console.log(pref, p.id);
-        }else{
-            console.log(p.id);
-        }
-    }
-};
-
-/*var rules = {
-    0: new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")),
-    1: new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
-        console.log("rule2:",packet.id,lastpacket.id);
-    })
-} ;
-
-rules[1].conditional = true;
-rules[0].pushTo = [1];*/
-
-/*var r1 = new Matcher.Set(new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")));
-r1.pushTo(new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
-    console.log("rule2:",packet.id,lastpacket.id);
-}));
-
-var rules = new Matcher.Builder(r1).rules;*/
-
-var r1 = when().matchOn(packet().field().tcp().dstport().equals(80)).then(printId("rule0"))
-    .followedBy.matchOn(packet().has().field("http")).then(function(packet,lastpacket){
-    console.log("rule2:",packet.id,lastpacket.id);
-});
-
-var rules = new Matcher.Builder(r1.end()).rules;
-
-console.log(rules);
-
-
-var matcher = new Matcher();
-matcher.addRules(rules);
 var parser = new PdmlParser();
 parser.parseFile("./example.pdml",function(packets) {
 
+    var r = require("./rules.js");
+    var builder = new Matcher.Builder();
+    for(var i in r) {
+        builder.append(r[i].end());
+    }
+
+    console.log(builder.rules);
+
+    var matcher = new Matcher();
+    matcher.addRules(builder.rules);
 
 
     for(var i in packets) {

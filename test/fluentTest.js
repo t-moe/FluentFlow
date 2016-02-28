@@ -7,15 +7,15 @@ var packet = Fluent.packet;
 var when = Fluent.when;
 
 exports.testFluentOneStep = function(test) {
-    var a = when();
-    test.equals(a.steps.length,1);
-    test.equals(a.steps[0].rules.size(),0);
-    test.equals(a.steps[0].actions.length,0);
+
+    test.equals(when.steps.length,1);
+    test.equals(when.steps[0].rules.size(),0);
+    test.equals(when.steps[0].actions.length,0);
 
     var x = new Matcher.Rule();
     var y = new Matcher.Rule();
     var z = new Matcher.Rule();
-    var t1 = when().matchOn(x);
+    var t1 = when.matchOn(x);
     test.equals(t1.steps.length,1);
     test.equals(t1.steps[0].actions.length,0);
     test.equals(t1.steps[0].rules.size(),1);
@@ -46,7 +46,12 @@ exports.testFluentOneStep = function(test) {
     test.equals(t5.steps[0].actions[0],f1);
     test.equals(t5.steps[0].actions[1],f2);
 
-     test.done();
+    test.equals(when.steps.length,1);
+    test.equals(when.steps[0].rules.size(),0);
+    test.equals(when.steps[0].actions.length,0);
+
+
+    test.done();
 };
 
 exports.testFluentTwoSteps = function(test) {
@@ -56,7 +61,7 @@ exports.testFluentTwoSteps = function(test) {
     var z = new Matcher.Rule();
     var f1 = function() {};
     var f2 = function() {};
-    var s1 = when().matchOn(x).and.matchOn(y).and.matchOn(z).then(f1).then(f2);
+    var s1 = when.matchOn(x).and.matchOn(y).and.matchOn(z).then(f1).then(f2);
     test.equals(s1.steps[0].rules.size(),3);
     test.equals(s1.steps[0].actions.length,2);
 
@@ -70,8 +75,6 @@ exports.testFluentTwoSteps = function(test) {
     var f3 = function () {};
 
     var t1 = s2.matchOn(x2).and.matchOn(y2).then(f3);
-    test.equals(s1.steps[0].rules.size(),3);
-    test.equals(s1.steps[0].actions.length,2);
     test.equals(t1.steps[1].rules.at(0),x2);
     test.equals(t1.steps[1].rules.at(1),y2);
     test.equals(t1.steps[1].actions.length,1);

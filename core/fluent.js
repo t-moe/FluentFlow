@@ -4,6 +4,7 @@
 var completeAssign = require('mini-complete-assign');
 var Matcher = require("../core/matcher.js");
 
+'use strict';
 
 
 var extend = completeAssign;
@@ -116,18 +117,26 @@ console.log(packet().has().field().tcp().dstport()({}));*/
 
 var fluent2 = function(){
     var intern = { };
-
+    var fluentReturn = function(that){
+        var args = Array.prototype.slice.call(arguments);
+        args[0]={steps: that.steps};
+        that.steps = [{ //reset start object (when aka fluent2) to defaults
+            rules: new Matcher.Set(), //without any rules
+            actions: [] //without any actions
+        }];
+        return extend.apply(null,args);
+    };
 
     intern.fluentOperators = {
         get and() {
              var lastStep = this.steps[this.steps.length-1];
              lastStep.optr = "and";
-             return extend({steps: this.steps},intern.fluentActions);
+            return fluentReturn(this,intern.fluentActions);
         },
         get or() {
             var lastStep = this.steps[this.steps.length-1];
             lastStep.optr = "or";
-            return extend({steps: this.steps},intern.fluentActions);
+            return fluentReturn(this,intern.fluentActions);
         },
 
     };
@@ -154,7 +163,7 @@ var fluent2 = function(){
                 rules: new Matcher.Set(), //without any rules
                 actions: [] //without any actions
             });
-            return extend({steps: this.steps},intern.fluentActions);
+            return fluentReturn(this,intern.fluentActions);
         }
     };
     intern.fluentActions = {
@@ -166,7 +175,7 @@ var fluent2 = function(){
             }
             var lastStep = this.steps[this.steps.length-1];
             lastStep.rules.append(rule);
-            return extend({steps: this.steps},intern.fluentTerminators,intern.fluentOperators);
+            return fluentReturn(this,intern.fluentTerminators,intern.fluentOperators);
         }
     };
 
@@ -179,7 +188,7 @@ var fluent2 = function(){
     },intern.fluentActions);
 
 
-};
+}();
 
 var when = fluent2;
 module.exports = {
