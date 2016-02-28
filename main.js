@@ -34,12 +34,19 @@ var printId = function(pref) {
 rules[1].conditional = true;
 rules[0].pushTo = [1];*/
 
-var r1 = new Matcher.Set(new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")));
+/*var r1 = new Matcher.Set(new Matcher.Rule(packet().field().tcp().dstport().equals(80), printId("rule0")));
 r1.pushTo(new Matcher.Rule(packet().has().field("http"), function(packet,lastpacket){
     console.log("rule2:",packet.id,lastpacket.id);
 }));
 
-var rules = new Matcher.Builder(r1).rules;
+var rules = new Matcher.Builder(r1).rules;*/
+
+var r1 = when().matchOn(packet().field().tcp().dstport().equals(80)).then(printId("rule0"))
+    .followedBy.matchOn(packet().has().field("http")).then(function(packet,lastpacket){
+    console.log("rule2:",packet.id,lastpacket.id);
+});
+
+var rules = new Matcher.Builder(r1.end()).rules;
 
 console.log(rules);
 

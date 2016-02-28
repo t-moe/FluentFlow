@@ -119,7 +119,7 @@ var fluent2 = function(){
 
 
     intern.fluentOperators = {
-         get and() {
+        get and() {
              var lastStep = this.steps[this.steps.length-1];
              lastStep.optr = "and";
              return extend({steps: this.steps},intern.fluentActions);
@@ -128,7 +128,8 @@ var fluent2 = function(){
             var lastStep = this.steps[this.steps.length-1];
             lastStep.optr = "or";
             return extend({steps: this.steps},intern.fluentActions);
-        }
+        },
+
     };
 
     intern.fluentTerminators = {
@@ -137,6 +138,16 @@ var fluent2 = function(){
             var lastStep = this.steps[this.steps.length-1];
             lastStep.actions.push(f);
             return this;
+        },
+        "end" : function() {
+            for(var i=0; i<this.steps.length; i++) {
+                var step = this.steps[i];
+                step.rules.addAction.apply(step.rules,step.actions);
+                if(i<this.steps.length-1) {
+                    step.rules.pushTo(this.steps[i+1].rules);
+                }
+            }
+            return this.steps[0].rules;
         },
         get followedBy() {
             this.steps.push({ //adding an empty step
@@ -148,6 +159,11 @@ var fluent2 = function(){
     };
     intern.fluentActions = {
         "matchOn": function(rule) {
+            if(typeof(rule) =="function") {
+                rule = new Matcher.Rule(rule);
+            } else if (!(rule instanceof  Matcher.Rule)) {
+                throw new Error("Argument must be a function or an instance of Matcher.Rule");
+            }
             var lastStep = this.steps[this.steps.length-1];
             lastStep.rules.append(rule);
             return extend({steps: this.steps},intern.fluentTerminators,intern.fluentOperators);

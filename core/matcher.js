@@ -138,6 +138,7 @@ module.exports =  function() {
                 } else if(arg instanceof obj.Rule) {
                     this.data.push(arg);
                 } else {
+                    console.log(arg);
                     throw new Error("invalid argument type");
                 }
             }
@@ -165,6 +166,7 @@ module.exports =  function() {
                             where.pushTo.push(what);
                         }
                     } else {
+                        console.log(what);
                         throw new Error("invalid argument type");
                     }
                 }
@@ -196,14 +198,17 @@ module.exports =  function() {
             return n;
         };
 
-        this.setAction = function(f) {
-            if(typeof(f)!=="function") throw new Error("argument must be a function");
-            for(var k in this.data) {
-                var d = this.data[k];
-                if(d.action) throw new Error("Action already set");
-                d.action = f;
+        this.addAction = function() {
+            for(var i in arguments) {
+                var f = arguments[i];
+                if (typeof(f) !== "function") throw new Error("argument must be a function");
+                for (var k in this.data) {
+                    var d = this.data[k];
+                    if (d.action) throw new Error("Action already set");
+                    d.action = f;
+                }
             }
-        }
+        };
 
        this.append.apply(this,arguments);
 
@@ -221,6 +226,7 @@ module.exports =  function() {
                 } else if(arg instanceof obj.Rule) {
                     this.assign(arg);
                 } else {
+                    console.log(arg);
                     throw new Error("invalid argument type");
                 }
             }
