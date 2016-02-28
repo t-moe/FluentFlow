@@ -18,7 +18,7 @@ parser.parseFile("./example.pdml",function(packets) {
         builder.append(r[i].end());
     }
 
-    console.log(builder.rules);
+    builder.printRules();
 
     var matcher = new Matcher();
     matcher.addRules(builder.rules);

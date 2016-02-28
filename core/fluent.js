@@ -41,10 +41,17 @@ var fluent = function() {
         "equals" : function(value){
             if(!this.props || ! this.props.field) throw new Error();
             var field = this.props.field;
-            return function(packet){
+            var fun = "(function (packet){";
+            fun+= "return ";
+            fun+= "packet."+this.props.field;
+            fun+= "==";
+            fun+= JSON.stringify(value);
+            fun+=";})";
+
+            return eval(fun);/* function(packet){
                 //console.log("checking if packet ("+packet.id+") field "+field+" equals value "+value);
                 return intern.packetGetField(packet,field) == value;
-            }
+            }*/
         }
 
     };
@@ -194,4 +201,4 @@ var when = fluent2;
 module.exports = {
     "when" : when,
     "packet" : packet
-}
+};

@@ -232,7 +232,7 @@ module.exports =  function() {
             }
         };
         this.assign = function(rule) {
-            if(rule.id!=null) return;
+            if(rule.id!=null) return rule.id;
             rule.id=this.rules.length;
             this.rules.push(rule);
             for(var i=0; i<rule.pushTo.length; i++) {
@@ -244,6 +244,24 @@ module.exports =  function() {
                 }
             }
             return rule.id;
+        };
+
+        this.printRules = function() {
+            console.log("Rules ("+this.rules.length+"):");
+            for(var i =0; i<this.rules.length;i++) {
+                var rule = this.rules[i];
+                var str="";
+                if(rule.conditional) {
+                    str+="conditional ";
+                }
+                if(rule.pushTo.length) {
+                    str+="pushesTo: "+rule.pushTo.toString()+" ";
+                }
+                console.log("Rule "+i+": "+str);
+                if(rule.rule) {
+                    console.log("ruleChecker: "+rule.rule.toString());
+                }
+            }
         };
 
         this.append.apply(this,arguments);
