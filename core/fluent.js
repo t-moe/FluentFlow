@@ -10,23 +10,24 @@ var Matcher = require("../core/matcher.js");
 var extend = completeAssign;
 
 var fluent = function() {
-    var intern = {};
+    var intern =  { };
 
-
-    intern.fluentFields = {
-        "tcp" : function()  {
-            return intern.fluentFieldExtend(this,"tcp",{
-                "srcport" : function(){return intern.fluentFieldExtend(this,"srcport");},
-                "dstport" : function(){return intern.fluentFieldExtend(this,"dstport");}
-            });
-        },
-        "udp" : function() {
-            return intern.fluentFieldExtend(this, "udp");
+    var fluentReturn = function(p1,p2){
+        var args = Array.prototype.slice.call(arguments);
+        if(typeof(p1) == "function") {
+            args[1]={props: p2.props};
+            p2.props = new Object(); //reset start object
+        } else if(typeof(p1) == "object") {
+            args[0]={props: p1.props};
+            p1.props = new Object(); //reset start object
+        } else {
+            throw new Error();
         }
 
+        return extend.apply(null,args);
     };
 
-    intern.packetGetField = function(packet,field) {
+    var packetGetField = function(packet,field) {
         var splits = field.split(".");
         for(var i= 0; i< splits.length; i++) {
             if(typeof(packet) != "undefined")
@@ -35,7 +36,61 @@ var fluent = function() {
                 return undefined;
         }
         return packet;
-    }
+    };
+
+    var fluentFieldExtend = function(obj,f,subfields) {
+        if(!obj.props.field) {
+            obj.props.field=f;
+        } else {
+            obj.props.field = obj.props.field+"."+f;
+        }
+        if(obj.props.checker) {
+            return fluentReturn(function(packet) {
+                //console.log("checking if packet ("+packet.id+") has field "+ obj.props.field);
+                return packetGetField(packet,obj.props.field)!=null;
+            },obj,subfields || {});
+        } else {
+            return fluentReturn(obj,intern.fluentOperators,subfields || {});
+        }
+
+    };
+
+    var fields = {
+        "tcp" : ["srcport","dstport"],
+        "udp" : ["srcport","dstport"],
+        "http" : {
+            "header" : ["aaa","bbb"],
+            "body" : {}
+        }
+    };
+
+
+    var prepareFluentFields = function(obj) {
+        var ret = {};
+        var bindExtender = function(exp,subs) {
+            return function() {return fluentFieldExtend(this,exp,subs); };
+        };
+        if(obj instanceof Array) {
+            for(var i=0; i<obj.length; i++) {
+                Object.defineProperty(ret, obj[i], {get: bindExtender(obj[i]), enumerable:true});
+            }
+        } else if(typeof(obj) == "object") {
+            for(var i in obj) {
+                var x;
+                if(Object.keys(obj[i]).length) {
+                    x = bindExtender(i,prepareFluentFields(obj[i]));
+                } else {
+                    x = bindExtender(i);
+                }
+                Object.defineProperty(ret, i, { get: x, enumerable: true});
+            }
+        } else {
+            throw new Error();
+        }
+        return ret;
+    };
+
+    intern.fluentFields = prepareFluentFields(fields);
 
     intern.fluentOperators = {
         "equals" : function(value){
@@ -56,69 +111,40 @@ var fluent = function() {
 
     };
 
-    intern.fluentFieldExtend = function(obj,f,subfields) {
-        if(!obj.props.field) {
-            obj.props.field=f;
-        } else {
-            obj.props.field = obj.props.field+"."+f;
-        }
-        if(obj.props.checker) {
-            return extend(function(packet) {
-                //console.log("checking if packet ("+packet.id+") has field "+ obj.props.field);
-                return intern.packetGetField(packet,obj.props.field)!=null;
-            },{props:obj.props},subfields);
-        } else {
-            return extend({props:obj.props}, intern.fluentOperators, subfields || {})
-        }
 
-    };
-
-
-    intern.fluentStart =
-    {
-        "props" : new Object(),
-
-        "has" : function(){
-            return {
-                props: {checker: "has"},
-                field: intern.fluentStart.field
-            };
+    intern.fluentFieldors = {
+        get field(){
+            return fluentReturn(this,intern.fluentFields);
+            //return extend({props:this.props}, intern.fluentFields);
         },
-        "field" : function(fieldname) {
-            if(fieldname) {
+        "fieldNamed" : function(fieldname) {
+            if (typeof(fieldname)=="string") {
                 this.props.field = fieldname;
-                if(!this.props.checker) {
-                    return extend({props:this.props}, intern.fluentOperators);
+                if (!this.props.checker) {
+                    return fluentReturn(this,intern.fluentOperators);
                 } else {
                     var field = this.props.field;
-                    return extend(function(packet) {
+                    return fluentReturn(function (packet) {
                         //console.log("checking if packet ("+packet.id+") has field "+ obj.props.field);
-                        return intern.packetGetField(packet,field)!=null;
-                    },{props:this.props}, intern.fluentOperators);
+                        return packetGetField(packet, field) != null;
+                    },this,intern.fluentOperators);
                 }
             }
-            return extend({props:this.props}, intern.fluentFields);
+            throw new Error("Argument of fieldNamed must be a string");
         }
-
-
     };
 
+    intern.fluentStartors =
+    {
+        get has(){
+            this.props.checker ="has";
+            return fluentReturn(this, intern.fluentFieldors);
+        }
+    };
 
-    return intern.fluentStart;
-};
-
-var packet = fluent;
-
-/*
-console.log(packet().field("tcp.aaa"));
-console.log(packet().field());
-console.log(packet().field().tcp());
-console.log(packet().field().tcp().srcport());
-console.log(packet().field().tcp().srcport().equals(80)({}));
-console.log(packet().has());
-console.log(packet().has().field());
-console.log(packet().has().field().tcp());
-console.log(packet().has().field().tcp().dstport()({}));*/
+    intern.starter = extend({"props" : new Object()},intern.fluentStartors,intern.fluentFieldors);
+    return intern;
+}();
 
 
 
@@ -178,6 +204,7 @@ var fluent2 = function(){
             if(typeof(rule) =="function") {
                 rule = new Matcher.Rule(rule);
             } else if (!(rule instanceof  Matcher.Rule)) {
+                console.log(rule);
                 throw new Error("Argument must be a function or an instance of Matcher.Rule");
             }
             var lastStep = this.steps[this.steps.length-1];
@@ -186,19 +213,18 @@ var fluent2 = function(){
         }
     };
 
-
-    return  extend({
+    intern.starter = extend({
         "steps" : [{ //adding an empty step
             rules: new Matcher.Set(), //without any rules
             actions: [] //without any actions
         }]
     },intern.fluentActions);
 
-
+    return intern;
 }();
 
-var when = fluent2;
+
 module.exports = {
-    "when" : when,
-    "packet" : packet
+    "when" : fluent2.starter,
+    "packet" : fluent.starter
 };

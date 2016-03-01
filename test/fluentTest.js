@@ -82,3 +82,27 @@ exports.testFluentTwoSteps = function(test) {
     test.done();
 };
 
+exports.testFluentPacket = function(test){
+
+    test.equals(packet.field.tcp.props.field,"tcp");
+    test.equals(packet.field.tcp.dstport.props.field,"tcp.dstport");
+    test.equals(packet.field.tcp.srcport.props.field,"tcp.srcport");
+    test.equals(packet.field.http.props.field,"http");
+    test.equals(packet.field.http.header.props.field,"http.header");
+    test.equals(packet.field.http.header.aaa.props.field,"http.header.aaa");
+    test.equals(packet.field.http.body.props.field,"http.body");
+
+    test.done();
+};
+
+
+/*
+ console.log(packet().field("tcp.aaa"));
+ console.log(packet().field());
+ console.log(packet().field().tcp());
+ console.log(packet().field().tcp().srcport());
+ console.log(packet().field().tcp().srcport().equals(80)({}));
+ console.log(packet().has());
+ console.log(packet().has().field());
+ console.log(packet().has().field().tcp());
+ console.log(packet().has().field().tcp().dstport()({}));*/
