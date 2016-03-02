@@ -15,7 +15,7 @@ var fluent = function() {
     var fluentReturn = function(p1,p2){
         var args = Array.prototype.slice.call(arguments);
         args[0]={props: p1.props};
-        p1.props = new Object(); //reset start object
+        p1.props = {"isLastPacket": p1.props.isLastPacket} //reset start object
 
         if(typeof(p2) == "function") {
             args[1]=args[0];
@@ -31,7 +31,7 @@ var fluent = function() {
         } else {
             obj.props.field = obj.props.field+"."+f;
         }
-        return fluentReturn(obj,intern.fluentOperators,subfields || {});
+        return fluentReturn(obj,intern.fluentTermOperators,subfields || {});
     };
 
     var fields = {
@@ -98,33 +98,71 @@ var fluent = function() {
         fun+= obj.props.funcString;
         fun+=";})";
 
-        return  fluentReturn(obj,eval(fun),intern.fluentFieldors,intern.fluentOperators);
+        return  fluentReturn(obj,eval(fun),intern.fluentOperators);
     };
 
     intern.fluentFields = prepareFluentFields(fields);
 
-    intern.fluentOperators = {
-        "equals" : function(value){
-            if(!this.props || ! this.props.field) throw new Error();
+    intern.fluentTermOperators = {
+        "equals": function (value) {
+            if (!this.props || !this.props.field) throw new Error();
+            if(typeof(value)=="object" && typeof(value.props)=="object") { //TODO: improve detection of packet/lastPacket
+                //TODO: disallow stuff like 'lastPacket.field("a").and' as value
+                var varnameValue = "packet.";
+                if(value.props.isLastPacket) {
+                    this.props.funcRequiresLastPacket = true;
+                    varnameValue = "lastpacket.";
+                }
+                if(value.props.field) {
+                    value = varnameValue+value.props.field;
+                } else {
+                    value = varnameValue+this.props.field;
+                }
+            } else {
+                value = JSON.stringify(value);
+            }
 
-            var str = "packet."+this.props.field;
-            str+= "==";
-            str+= JSON.stringify(value);
+            var varname="packet.";
+            if(this.props.isLastPacket) {
+                varname = "lastpacket.";
+                this.props.funcRequiresLastPacket = true;
+            }
 
-            return appendGenerateFunction(this,str);
+            var str = varname+ this.props.field;
+            str += "==";
+            str += value;
+
+            return appendGenerateFunction(this, str);
         },
         get exists() {
-            if(!this.props || ! this.props.field) throw new Error();
+            if (!this.props || !this.props.field) throw new Error();
+            var varname="packet";
+            if(this.props.isLastPacket) {
+                varname = "lastpacket";
+                this.props.funcRequiresLastPacket = true;
+            }
 
-            return appendGenerateFunction(this,generatePacketFieldExistCheckString("packet",this.props.field));
-        },
+            return appendGenerateFunction(this, generatePacketFieldExistCheckString(varname, this.props.field));
+        }
+    };
+    intern.fluentOperators = {
         get and() {
             appendFunction(this,"&&");
-            return fluentReturn(this,intern.fluentFieldors,intern.fluentOperators);
+
+            var packet = extend({"props":extend({},this.props)},intern.fluentFieldors);
+            packet.props.isLastPacket = false;
+            var lastPacket = extend({"props":extend({},this.props)},intern.fluentFieldors);
+            lastPacket.props.isLastPacket = true;
+            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,{"packet":packet, "lastPacket":lastPacket});
         },
         get or() {
             appendFunction(this,"||");
-            return fluentReturn(this,intern.fluentFieldors,intern.fluentOperators);
+
+            var packet = extend({"props":extend({},this.props)},intern.fluentFieldors);
+            packet.props.isLastPacket = false;
+            var lastPacket = extend({"props":extend({},this.props)},intern.fluentFieldors);
+            lastPacket.props.isLastPacket = true;
+            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,{"packet":packet, "lastPacket":lastPacket});
         }
 
     };
@@ -138,13 +176,14 @@ var fluent = function() {
         "fieldNamed" : function(fieldname) {
             if (typeof(fieldname)=="string") {
                 this.props.field = fieldname;
-                return fluentReturn(this,intern.fluentOperators);
+                return fluentReturn(this,intern.fluentTermOperators);
             }
             throw new Error("Argument of fieldNamed must be a string");
         }
     };
 
-    intern.starter = extend({"props" : new Object()},intern.fluentFieldors);
+    intern.currentPacket = extend({"props" : {}},intern.fluentFieldors);
+    intern.lastPacket = extend({"props" : {"isLastPacket":true}},intern.fluentFieldors);
     return intern;
 }();
 
@@ -164,8 +203,9 @@ var fluent2 = function(){
 
     intern.fluentOperators = {
         get and() {
-             var lastStep = this.steps[this.steps.length-1];
-             lastStep.optr = "and";
+            throw new Error("not fully implemented");
+            var lastStep = this.steps[this.steps.length-1];
+            lastStep.optr = "and";
             return fluentReturn(this,intern.fluentActions);
         },
         get or() {
@@ -228,5 +268,6 @@ var fluent2 = function(){
 
 module.exports = {
     "when" : fluent2.starter,
-    "packet" : fluent.starter
+    "packet" : fluent.currentPacket,
+    "lastPacket" : fluent.lastPacket
 };
