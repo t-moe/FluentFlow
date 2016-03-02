@@ -9,38 +9,37 @@ var packet = Fluent.packet;
 var when = Fluent.when;*/
 
 
+
+
+var r = require("./rules.js");
+var builder = new Matcher.Builder();
+for(var i in r) {
+    builder.append(r[i].end());
+}
+
+builder.printRules();
+
+var matcher = new Matcher();
+matcher.addRules(builder.rules);
+
+
 var parser = new PdmlParser();
-parser.parseFile("./example.pdml",function(packets) {
-
-    var r = require("./rules.js");
-    var builder = new Matcher.Builder();
-    for(var i in r) {
-        builder.append(r[i].end());
-    }
-
-    builder.printRules();
-
-    var matcher = new Matcher();
-    matcher.addRules(builder.rules);
+//parser.parseFile("./example.pdml",function(packet) {
+parser.parseStdin(function(packet) {
 
 
-    for(var i in packets) {
-        var packet = packets[i];
-        matcher.matchNext(packet);
+    matcher.matchNext(packet);
 
 
-      //  if(packet.http) {
-        //    console.log(packet.geninfo.num);
-        //}
+    //  if(packet.http) {
+    //    console.log(packet.geninfo.num);
+    //}
 
-        //console.log(packet.id);
-        //when().matchOn("get to host 1 ").and().matchOn("http download from host 1").then(print);
-        //when().matchOn("dstport=80").andSameHost.matchOn("download x").andSameHost.
-        //when().matchOn("http get from host x").followedBy().matchOn("send data to host x").then(print)
-        //when().either().matchOn().followedBy().matchOn().or().matchOn("rerer").then(print)
-
-    }
-
+    //console.log(packet.id);
+    //when().matchOn("get to host 1 ").and().matchOn("http download from host 1").then(print);
+    //when().matchOn("dstport=80").andSameHost.matchOn("download x").andSameHost.
+    //when().matchOn("http get from host x").followedBy().matchOn("send data to host x").then(print)
+    //when().either().matchOn().followedBy().matchOn().or().matchOn("rerer").then(print)
 
 
 });

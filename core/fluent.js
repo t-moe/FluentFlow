@@ -77,7 +77,7 @@ var fluent = function() {
             concat+="."+splits[i];
             str+=concat + "&& ";
         }
-        str += "typeof("+concat+"."+splits[splits.length-1]+") != undefined)";
+        str += "typeof("+concat+"."+splits[splits.length-1]+") != \"undefined\")";
         return str;
     };
 

@@ -2,6 +2,7 @@
   "name": "application-name",
   "version": "0.0.1",
   "dependencies": {
+    "split" : "latest",
     "mini-complete-assign": "0.0.1",
     "xml2js": "latest"
   },
