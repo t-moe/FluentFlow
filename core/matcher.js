@@ -247,7 +247,7 @@ module.exports =  function() {
         };
 
         this.printRules = function() {
-            console.log("Rules ("+this.rules.length+"):");
+            console.log("--------------------------Rules ("+this.rules.length+")--------------------------");
             for(var i =0; i<this.rules.length;i++) {
                 var rule = this.rules[i];
                 var str="";
@@ -262,6 +262,7 @@ module.exports =  function() {
                     console.log("ruleChecker: "+rule.rule.toString());
                 }
             }
+            console.log("-----------------------------------------------------------------");
         };
 
         this.append.apply(this,arguments);

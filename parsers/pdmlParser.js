@@ -32,9 +32,13 @@ var PdmlParser = function(file) {
     };
 
     this.parseStdin = function(cb) {
+        this.parseStream(process.stdin,cb);
+    };
+
+    this.parseStream = function(packetStream,cb) {
         var parser = new xml2js.Parser();
         var packets = new Array();
-        process.stdin.pipe(require('split')("</packet>",null,{ trailing: false })).on('data', function(line) {
+        packetStream.pipe(require('split')("</packet>",null,{ trailing: false })).on('data', function(line) {
             line = line.substr(line.indexOf("<packet>"))+"</packet>";
 
             parser.parseString(line,function(err,result) {
@@ -44,6 +48,7 @@ var PdmlParser = function(file) {
         }).on('end',function() {
             console.log("Stream finished");
         });
+
     };
 
     this.parseFile = function(filename,cb) {
