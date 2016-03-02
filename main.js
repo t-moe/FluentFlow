@@ -57,11 +57,18 @@ intern.runOfflinePdml = function(filename){
     });
 };
 
+intern.runPipePdml = function() {
+    var parser = new PdmlParser();
+    if(intern.startup()) {
+        parser.parseStdin(intern.packetCallback);
+    }
+};
+
 intern.showHelp = function() {
     console.log("FluentFlow Command Line Options:");
     console.log("-h\t\t\tdisplay help");
     console.log("-i\t<interface>\tsniff from interface using tshark");
-    console.log("-p\tfile\t\tread from pdml file (tshark -T pdml)");
+    console.log("-p\t<file>\t\tread from pdml file or '-' to read from stdin");
     //console.log("-t\tfile\t\tread from tff json file");
 };
 
@@ -74,7 +81,11 @@ if(argv.i && argv.p) {
 } else if(!(argv.h) && typeof (argv.i) == "string") {
     intern.runLive(argv.i);
 } else if(!(argv.h) && typeof (argv.p) == "string") {
-    intern.runOfflinePdml(argv.p);
+    if(argv.p=="-") { //read from stdin
+        intern.runPipePdml();
+    } else {
+        intern.runOfflinePdml(argv.p);
+    }
 } else {
     intern.showHelp();
 }
