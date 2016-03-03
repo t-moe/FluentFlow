@@ -15,12 +15,22 @@ var PdmlParser = function(file) {
             for(var i in packet.proto) {
                 var proto = packet.proto[i];
                 var name = proto["$"].name;
+                if(res[name]!=undefined) {
+                    console.log("Overwriting element with key "+name);
+                }
                 var entry = res[name] = new Object();
                 for(var j in proto.field) {
                     var field = proto.field[j];
                     var key = field["$"].name;
                     if(key.indexOf(name)!=-1) key = key.substring(name.length+1);
-                    entry[key] = field["$"].show;
+                    if(entry[key]!=undefined) {
+                        if(!(entry[key] instanceof  Array)) {
+                            entry[key] = [entry[key]];
+                        }
+                        entry[key].push(field["$"].show);
+                    } else {
+                        entry[key] = field["$"].show;
+                    }
                 }
             }
         }

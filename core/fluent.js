@@ -101,38 +101,71 @@ var fluent = function() {
         return  fluentReturn(obj,eval(fun),intern.fluentOperators);
     };
 
+    var serializeValue = function(value) {
+        if(typeof(value)=="object" && typeof(value.props)=="object") { //TODO: improve detection of packet/lastPacket
+            //TODO: disallow stuff like 'lastPacket.field("a").and' as value
+            var varnameValue = "packet.";
+            if(value.props.isLastPacket) {
+                this.props.funcRequiresLastPacket = true;
+                varnameValue = "lastpacket.";
+            }
+            if(value.props.field) {
+                value = varnameValue+value.props.field;
+            } else {
+                value = varnameValue+this.props.field;
+            }
+        } else {
+            value = JSON.stringify(value);
+        }
+        return value;
+    };
+
+    var serializeVarname = function() {
+        if (!this.props || !this.props.field) throw new Error();
+
+        var varname="packet.";
+        if(this.props.isLastPacket) {
+            varname = "lastpacket.";
+            this.props.funcRequiresLastPacket = true;
+        }
+        return varname+this.props.field;
+    };
+
     intern.fluentFields = prepareFluentFields(fields);
 
     intern.fluentTermOperators = {
         "equals": function (value) {
-            if (!this.props || !this.props.field) throw new Error();
-            if(typeof(value)=="object" && typeof(value.props)=="object") { //TODO: improve detection of packet/lastPacket
-                //TODO: disallow stuff like 'lastPacket.field("a").and' as value
-                var varnameValue = "packet.";
-                if(value.props.isLastPacket) {
-                    this.props.funcRequiresLastPacket = true;
-                    varnameValue = "lastpacket.";
-                }
-                if(value.props.field) {
-                    value = varnameValue+value.props.field;
-                } else {
-                    value = varnameValue+this.props.field;
-                }
-            } else {
-                value = JSON.stringify(value);
+            var str = serializeVarname.call(this);
+            if(typeof (value) == "number") {
+                str = "parseInt("+str+")";
             }
-
-            var varname="packet.";
-            if(this.props.isLastPacket) {
-                varname = "lastpacket.";
-                this.props.funcRequiresLastPacket = true;
-            }
-
-            var str = varname+ this.props.field;
             str += "==";
-            str += value;
+            str += serializeValue.call(this,value);
 
-            return appendGenerateFunction(this, str);
+            return appendGenerateFunction(this, "("+str+")");
+        },
+        "between" : function(lower,upper) {
+            var varname = serializeVarname.call(this);
+            if(typeof(lower)!="number") lower = "parseInt("+serializeValue.call(this,lower)+")";
+            if(typeof(upper)!="number") upper = "parseInt("+serializeValue.call(this,upper)+")";
+            var str = "(parseInt("+varname+")>"+lower+"&&parseInt("+varname+")<"+upper+")";
+            return appendGenerateFunction(this,str);
+        },
+        "contains" : function(value) {
+            value = serializeValue.call(this,value);
+            var str = "("+ serializeVarname.call(this)+".indexOf("+value+")>=0)";
+
+            return appendGenerateFunction(this,str);
+        },
+        "matches" : function(expr) {
+            if(!(expr instanceof  RegExp)) throw new Error ("argument is not a regular expression");
+            var str = "("+expr.toString()+".test("+serializeVarname.call(this)+"))";
+
+            return appendGenerateFunction(this,str);
+        },
+        get not() {
+            appendFunction(this,"!");
+            return  fluentReturn(this,intern.fluentTermOperators);
         },
         get exists() {
             if (!this.props || !this.props.field) throw new Error();

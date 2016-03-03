@@ -61,25 +61,59 @@ Instead of using a callback function in matchOn you can also use the fluent API 
 
 Here are some examples:
 
+<!---
+
+function printy(rule) {
+    console.log("* `"+rule+"`  ");
+    console.log("will translate into  ");
+    console.log("`"+eval(rule+".toString()")+"`");
+    console.log();
+}
+
+printy("packet.fieldNamed(\"tcp.dstport\").equals(80)");
+
+-->
+
+
 * `packet.fieldNamed("tcp.dstport").equals(80)`  
-will translate into:  
-`function (packet){return packet.tcp.dstport==80;}`
+will translate into  
+`function (packet){return (parseInt(packet.tcp.dstport)==80);}`
 
 * `packet.fieldNamed("tcp.dstport").exists.and.equals(80)`  
-will translate into:  
-`function (packet){return (packet && packet.tcp&& typeof(packet.tcp.dstport) != "undefined")&&packet.tcp.dstport==80;}`
+will translate into  
+`function (packet){return (packet && packet.tcp&& typeof(packet.tcp.dstport) != "undefined")&&(parseInt(packet.tcp.dstport)==80);}`
 
 * `packet.fieldNamed("tcp.dstport").equals(80).or.equals(443)`  
- will translate into:  
- `function (packet){return packet.tcp.dstport==80 || packet.tcp.dstport==443; }`
- 
+will translate into  
+`function (packet){return (parseInt(packet.tcp.dstport)==80)||(parseInt(packet.tcp.dstport)==443);}`
+
 * `packet.fieldNamed("tcp.dstport").equals(lastPacket)`  
- will translate into:  
- `function (packet,lastpacket){return packet.tcp.dstport==lastpacket.tcp.dstport;}`
+will translate into  
+`function (packet,lastpacket){return (packet.tcp.dstport==lastpacket.tcp.dstport);}`
 
 * `packet.fieldNamed("udp.src").exists.and.equals(lastPacket.fieldNamed("tcp.src"))`  
-will translate into:  
-`function (packet,lastpacket){return (packet && packet.udp&& typeof(packet.udp.src) != "undefined")&&packet.udp.src==lastpacket.tcp.src;}`
+will translate into  
+`function (packet,lastpacket){return (packet && packet.udp&& typeof(packet.udp.src) != "undefined")&&(packet.udp.src==lastpacket.tcp.src);}`
+
+* `packet.fieldNamed("tcp.dstport").not.equals(lastPacket).or.equals(0)`  
+will translate into  
+`function (packet,lastpacket){return !(packet.tcp.dstport==lastpacket.tcp.dstport)||(parseInt(packet.tcp.dstport)==0);}`
+
+* `packet.fieldNamed("tcp.dstport").between(0,1024)`  
+will translate into  
+`function (packet){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<1024);}`
+
+* `packet.fieldNamed("tcp.dstport").between(0,lastPacket)`  
+will translate into  
+`function (packet,lastpacket){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<parseInt(lastpacket.tcp.dstport));}`
+
+* `packet.fieldNamed("http.host").contains("foo")`  
+will translate into  
+`function (packet){return (packet.http.host.indexOf("foo")>=0);}`
+
+* `packet.fieldNamed("http.host").not.matches(/abc\d+/).and.matches(/.*\.ch/)`  
+will translate into  
+`function (packet){return !(/abc\d+/.test(packet.http.host))&&(/.*\.ch/.test(packet.http.host));}`
 
   
 Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport`. This only works for properties which have been registered (TODO: explain).
