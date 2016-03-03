@@ -3,9 +3,7 @@
  */
 var Fluent = require("../core/fluent.js");
 var Matcher = require("../core/matcher.js");
-var packet = Fluent.packet;
-var lastPacket = Fluent.lastPacket;
-var when = Fluent.when;
+var when = Fluent.Matcher().starter;
 
 exports.testFluentOneStep = function(test) {
 
@@ -83,29 +81,39 @@ exports.testFluentTwoSteps = function(test) {
     test.done();
 };
 
-exports.testFluentPacket = function(test){
+exports.testFluentObject = function(test){
 
-    test.equals(packet.field.tcp.props.field,"tcp");
-    test.equals(packet.field.tcp.dstport.props.field,"tcp.dstport");
-    test.equals(packet.field.tcp.srcport.props.field,"tcp.srcport");
-    test.equals(packet.field.http.props.field,"http");
-    test.equals(packet.field.http.header.props.field,"http.header");
-    test.equals(packet.field.http.header.aaa.props.field,"http.header.aaa");
-    test.equals(packet.field.http.body.props.field,"http.body");
+    var f = Fluent.Object({
+            "tcp" : ["srcport","dstport"],
+            "http": {
+                "header" : ["aaa","bbb"],
+                "body" : []
+            }
+        });
+    var currentObject = f.currentObject;
+    var lastObject = f.lastObject;
 
-    test.equals(packet.field.tcp.dstport.equals(80).props.funcString.replace(/ /g,''),"packet.tcp.dstport==80");
-    test.equals(packet.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"packet.tcp.dstport==80&&packet.tcp.dstport==81");
-    test.equals(packet.field.tcp.dstport.equals(80).or.equals(81).and.equals(82).props.funcString.replace(/ /g,''),"packet.tcp.dstport==80||packet.tcp.dstport==81&&packet.tcp.dstport==82");
-    test.equals(lastPacket.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"lastpacket.tcp.dstport==80&&lastpacket.tcp.dstport==81");
-    test.equals(packet.fieldNamed("a").equals(80).and.lastPacket.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"packet.a==80&&lastpacket.b==81");
-    test.equals(lastPacket.fieldNamed("a").equals(80).and.packet.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"lastpacket.a==80&&packet.b==81");
+    test.equals(currentObject.field.tcp.props.field,"tcp");
+    test.equals(currentObject.field.tcp.dstport.props.field,"tcp.dstport");
+    test.equals(currentObject.field.tcp.srcport.props.field,"tcp.srcport");
+    test.equals(currentObject.field.http.props.field,"http");
+    test.equals(currentObject.field.http.header.props.field,"http.header");
+    test.equals(currentObject.field.http.header.aaa.props.field,"http.header.aaa");
+    test.equals(currentObject.field.http.body.props.field,"http.body");
 
-    test.equals(packet.fieldNamed("a").equals(packet).props.funcString.replace(/ /g,''),"packet.a==packet.a");
-    test.equals(packet.fieldNamed("a").equals(lastPacket).props.funcString.replace(/ /g,''),"packet.a==lastpacket.a");
-    test.equals(packet.fieldNamed("a").equals(packet.fieldNamed("b")).props.funcString.replace(/ /g,''),"packet.a==packet.b");
-    test.equals(packet.fieldNamed("a").equals(lastPacket.fieldNamed("b")).props.funcString.replace(/ /g,''),"packet.a==lastpacket.b");
-    test.equals(lastPacket.fieldNamed("a").equals(packet.fieldNamed("b")).props.funcString.replace(/ /g,''),"lastpacket.a==packet.b");
-    test.equals(lastPacket.fieldNamed("a").equals(packet).props.funcString.replace(/ /g,''),"lastpacket.a==packet.a");
+    test.equals(currentObject.field.tcp.dstport.equals(80).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)");
+    test.equals(currentObject.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)&&(parseInt(object.tcp.dstport)==81)");
+    test.equals(currentObject.field.tcp.dstport.equals(80).or.equals(81).and.equals(82).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)||(parseInt(object.tcp.dstport)==81)&&(parseInt(object.tcp.dstport)==82)");
+    test.equals(lastObject.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"(parseInt(lastobject.tcp.dstport)==80)&&(parseInt(lastobject.tcp.dstport)==81)");
+    test.equals(currentObject.fieldNamed("a").equals(80).and.lastObject.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"(parseInt(object.a)==80)&&(parseInt(lastobject.b)==81)");
+    test.equals(lastObject.fieldNamed("a").equals(80).and.currentObject.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"(parseInt(lastobject.a)==80)&&(parseInt(object.b)==81)");
+
+    test.equals(currentObject.fieldNamed("a").equals(currentObject).props.funcString.replace(/ /g,''),"(object.a==object.a)");
+    test.equals(currentObject.fieldNamed("a").equals(lastObject).props.funcString.replace(/ /g,''),"(object.a==lastobject.a)");
+    test.equals(currentObject.fieldNamed("a").equals(currentObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(object.a==object.b)");
+    test.equals(currentObject.fieldNamed("a").equals(lastObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(object.a==lastobject.b)");
+    test.equals(lastObject.fieldNamed("a").equals(currentObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(lastobject.a==object.b)");
+    test.equals(lastObject.fieldNamed("a").equals(currentObject).props.funcString.replace(/ /g,''),"(lastobject.a==object.a)");
 
     test.done();
 };

@@ -166,10 +166,10 @@ exports.testComplexMatch = function(test) {
             test.equal(arguments.length,1);
             matches[1].push(p);
         } ),
-        2 : new Matcher.Rule(function(packet,lastPacket) {
+        2 : new Matcher.Rule(function(object,lastObject) {
             test.equal(arguments.length,2);
             matchArgs.push(Array.prototype.slice.call(arguments));
-            return packet.foo==3 && (lastPacket.bar==undefined || packet.bar ==undefined ||  lastPacket.bar+4 == packet.bar);
+            return object.foo==3 && (lastObject.bar==undefined || object.bar ==undefined ||  lastObject.bar+4 == object.bar);
         }, function(p,lp) {
             test.equal(arguments.length,2);
             matches[2].push(Array.prototype.slice.call(arguments));

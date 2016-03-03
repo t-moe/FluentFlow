@@ -9,13 +9,41 @@ var Matcher = require("../core/matcher.js");
 
 var extend = completeAssign;
 
-var fluent = function() {
+var fluentStarters = {
+    currentObject: {},
+    lastObject: {}
+};
+
+/**
+ * Creates a new Fluent API for objects (fieldNamed(bla).exists.and.equals(foo).or....)
+ * @param fields The fields which should be made available on field.* (as alternative to fieldNamed(*) )
+ * @param starters The start objects which should be made available. Per default we use "currentObject" and "lastObject" but you can create aliases for them.
+ * @returns An object which contains the start objects ("currentObject", "lastObject" and all the aliases you defined).
+ */
+var fluent = function(fields,starters) {
     var intern =  { };
+    intern.starters = extend({},fluentStarters,starters || {}); //extend the custom starter (aliases) with our default ones
+
+    var defaultFields = { //The fields which are available on the the field.* api.
+
+        /* Here's how the field parameter or the defaultFields should be structured:
+
+         "tcp" : ["srcport","dstport"], //defines tcp.srcport and tcp.dstport
+         "udp" : ["srcport","dstport"], //udp.srcport and udp.dstport
+         "ip" : ["src","dst"], //ip.dst and ip.src
+         "http" : { //defines http.header.aaa, http.header.bbb and http.body
+         "header" : ["aaa","bbb"],
+         "body" : {}
+
+         }
+         */
+    };
+    var fields =extend({},defaultFields,fields || {});
 
     var fluentReturn = function(p1,p2){
         var args = Array.prototype.slice.call(arguments);
         args[0]={props: p1.props};
-        p1.props = {"isLastPacket": p1.props.isLastPacket} //reset start object
+        p1.props = {"isLastObject": p1.props.isLastObject} //reset start object
 
         if(typeof(p2) == "function") {
             args[1]=args[0];
@@ -34,14 +62,6 @@ var fluent = function() {
         return fluentReturn(obj,intern.fluentTermOperators,subfields || {});
     };
 
-    var fields = {
-        "tcp" : ["srcport","dstport"],
-        "udp" : ["srcport","dstport"],
-        "http" : {
-            "header" : ["aaa","bbb"],
-            "body" : {}
-        }
-    };
 
 
     var prepareFluentFields = function(obj) {
@@ -69,10 +89,10 @@ var fluent = function() {
         return ret;
     };
 
-    var generatePacketFieldExistCheckString = function(packetvarname,field) {
+    var generateFieldExistCheckString = function(varname,field) {
         var splits = field.split(".");
-        var str="("+packetvarname+" && ";
-        var concat=packetvarname;
+        var str="("+varname+" && ";
+        var concat=varname;
         for(var i= 0; i< splits.length-1; i++) {
             concat+="."+splits[i];
             str+=concat + "&& ";
@@ -90,9 +110,9 @@ var fluent = function() {
     var appendGenerateFunction = function(obj,str) {
 
         appendFunction(obj,str);
-        var fun = "(function (packet){";
-        if(obj.props.funcRequiresLastPacket===true) {
-            fun = "(function (packet,lastpacket){";
+        var fun = "(function (object){";
+        if(obj.props.funcRequiresLastObject===true) {
+            fun = "(function (object,lastobject){";
         }
         fun+= "return ";
         fun+= obj.props.funcString;
@@ -102,12 +122,12 @@ var fluent = function() {
     };
 
     var serializeValue = function(value) {
-        if(typeof(value)=="object" && typeof(value.props)=="object") { //TODO: improve detection of packet/lastPacket
-            //TODO: disallow stuff like 'lastPacket.field("a").and' as value
-            var varnameValue = "packet.";
-            if(value.props.isLastPacket) {
-                this.props.funcRequiresLastPacket = true;
-                varnameValue = "lastpacket.";
+        if(typeof(value)=="object" && typeof(value.props)=="object") { //TODO: improve detection of object/lastObject
+            //TODO: disallow stuff like 'lastObject.field("a").and' as value
+            var varnameValue = "object.";
+            if(value.props.isLastObject) {
+                this.props.funcRequiresLastObject = true;
+                varnameValue = "lastobject.";
             }
             if(value.props.field) {
                 value = varnameValue+value.props.field;
@@ -123,12 +143,30 @@ var fluent = function() {
     var serializeVarname = function() {
         if (!this.props || !this.props.field) throw new Error();
 
-        var varname="packet.";
-        if(this.props.isLastPacket) {
-            varname = "lastpacket.";
-            this.props.funcRequiresLastPacket = true;
+        var varname="object.";
+        if(this.props.isLastObject) {
+            varname = "lastobject.";
+            this.props.funcRequiresLastObject = true;
         }
         return varname+this.props.field;
+    };
+
+    var newFluentStarters = function(props) {
+        var res = {};
+        for(var k in intern.starters) {
+            var obj = intern.starters[k];
+            var newObj = extend({"props":extend({},props)},intern.fluentFieldors);;
+            if(obj == fluentStarters.currentObject) {
+                newObj["props"].isLastObject = false;
+            } else if(obj==fluentStarters.lastObject) {
+                newObj["props"].isLastObject = true;
+            } else {
+                throw new Error("not supported value");
+            }
+            res[k] = newObj;
+        }
+
+        return res;
     };
 
     intern.fluentFields = prepareFluentFields(fields);
@@ -169,33 +207,25 @@ var fluent = function() {
         },
         get exists() {
             if (!this.props || !this.props.field) throw new Error();
-            var varname="packet";
-            if(this.props.isLastPacket) {
-                varname = "lastpacket";
-                this.props.funcRequiresLastPacket = true;
+            var varname="object";
+            if(this.props.isLastObject) {
+                varname = "lastobject";
+                this.props.funcRequiresLastObject = true;
             }
 
-            return appendGenerateFunction(this, generatePacketFieldExistCheckString(varname, this.props.field));
+            return appendGenerateFunction(this, generateFieldExistCheckString(varname, this.props.field));
         }
     };
     intern.fluentOperators = {
         get and() {
             appendFunction(this,"&&");
-
-            var packet = extend({"props":extend({},this.props)},intern.fluentFieldors);
-            packet.props.isLastPacket = false;
-            var lastPacket = extend({"props":extend({},this.props)},intern.fluentFieldors);
-            lastPacket.props.isLastPacket = true;
-            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,{"packet":packet, "lastPacket":lastPacket});
+            var res = newFluentStarters(this.props);
+            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,res);
         },
         get or() {
             appendFunction(this,"||");
-
-            var packet = extend({"props":extend({},this.props)},intern.fluentFieldors);
-            packet.props.isLastPacket = false;
-            var lastPacket = extend({"props":extend({},this.props)},intern.fluentFieldors);
-            lastPacket.props.isLastPacket = true;
-            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,{"packet":packet, "lastPacket":lastPacket});
+            var res = newFluentStarters(this.props);
+            return fluentReturn(this,intern.fluentFieldors,intern.fluentTermOperators,res);
         }
 
     };
@@ -215,10 +245,8 @@ var fluent = function() {
         }
     };
 
-    intern.currentPacket = extend({"props" : {}},intern.fluentFieldors);
-    intern.lastPacket = extend({"props" : {"isLastPacket":true}},intern.fluentFieldors);
-    return intern;
-}();
+    return extend(intern,newFluentStarters({}));
+};
 
 
 
@@ -296,11 +324,10 @@ var fluent2 = function(){
     },intern.fluentActions);
 
     return intern;
-}();
+};
 
 
 module.exports = {
-    "when" : fluent2.starter,
-    "packet" : fluent.currentPacket,
-    "lastPacket" : fluent.lastPacket
+    "Object" : extend(fluent,fluentStarters),
+    "Matcher" : fluent2
 };

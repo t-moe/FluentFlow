@@ -2,7 +2,8 @@
 
 ## What is fluent flow?
 
-FluentFlow is a filtering tool for network data. The rules are written as "javascript functions" or using a fluent API (jquery like).
+FluentFlow is a filtering tool for json objects. The rules are written as "javascript functions" or using a fluent API (jquery like).  
+The project was started with the intent to filter pdml output produced by wireshark (a network traffic capture & analysis tool). But the whole Matcher Core, Fluent API and the Unit tests are completely context free (= not limited to "network data").
 
 ## Usage
 
