@@ -59,7 +59,12 @@ var fluent = function(fields,starters) {
         } else {
             obj.props.field = obj.props.field+"."+f;
         }
-        return fluentReturn(obj,intern.fluentTermOperators,subfields || {});
+        var x = {
+            "toString" : function() {
+                return this.props.field;
+            }
+        }
+        return fluentReturn(obj,intern.fluentTermOperators,subfields || {},x);
     };
 
 
@@ -118,7 +123,13 @@ var fluent = function(fields,starters) {
         fun+= obj.props.funcString;
         fun+=";})";
 
-        return  fluentReturn(obj,eval(fun),intern.fluentOperators);
+        var x = {
+            "toString" : function() {
+                return this.props.funcString;
+            }
+        };
+
+        return  fluentReturn(obj,eval(fun),intern.fluentOperators,x);
     };
 
     var serializeValue = function(value) {

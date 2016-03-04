@@ -93,27 +93,27 @@ exports.testFluentObject = function(test){
     var currentObject = f.currentObject;
     var lastObject = f.lastObject;
 
-    test.equals(currentObject.field.tcp.props.field,"tcp");
-    test.equals(currentObject.field.tcp.dstport.props.field,"tcp.dstport");
-    test.equals(currentObject.field.tcp.srcport.props.field,"tcp.srcport");
-    test.equals(currentObject.field.http.props.field,"http");
-    test.equals(currentObject.field.http.header.props.field,"http.header");
-    test.equals(currentObject.field.http.header.aaa.props.field,"http.header.aaa");
-    test.equals(currentObject.field.http.body.props.field,"http.body");
+    test.equals(currentObject.field.tcp,"tcp");
+    test.equals(currentObject.field.tcp.dstport,"tcp.dstport");
+    test.equals(currentObject.field.tcp.srcport,"tcp.srcport");
+    test.equals(currentObject.field.http,"http");
+    test.equals(currentObject.field.http.header,"http.header");
+    test.equals(currentObject.field.http.header.aaa,"http.header.aaa");
+    test.equals(currentObject.field.http.body,"http.body");
 
-    test.equals(currentObject.field.tcp.dstport.equals(80).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)");
-    test.equals(currentObject.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)&&(parseInt(object.tcp.dstport)==81)");
-    test.equals(currentObject.field.tcp.dstport.equals(80).or.equals(81).and.equals(82).props.funcString.replace(/ /g,''),"(parseInt(object.tcp.dstport)==80)||(parseInt(object.tcp.dstport)==81)&&(parseInt(object.tcp.dstport)==82)");
-    test.equals(lastObject.field.tcp.dstport.equals(80).and.equals(81).props.funcString.replace(/ /g,''),"(parseInt(lastobject.tcp.dstport)==80)&&(parseInt(lastobject.tcp.dstport)==81)");
-    test.equals(currentObject.fieldNamed("a").equals(80).and.lastObject.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"(parseInt(object.a)==80)&&(parseInt(lastobject.b)==81)");
-    test.equals(lastObject.fieldNamed("a").equals(80).and.currentObject.fieldNamed("b").equals(81).props.funcString.replace(/ /g,''),"(parseInt(lastobject.a)==80)&&(parseInt(object.b)==81)");
+    test.equals(currentObject.field.tcp.dstport.equals(80),"(parseInt(object.tcp.dstport)==80)");
+    test.equals(currentObject.field.tcp.dstport.equals(80).and.equals(81),"(parseInt(object.tcp.dstport)==80)&&(parseInt(object.tcp.dstport)==81)");
+    test.equals(currentObject.field.tcp.dstport.equals(80).or.equals(81).and.equals(82),"(parseInt(object.tcp.dstport)==80)||(parseInt(object.tcp.dstport)==81)&&(parseInt(object.tcp.dstport)==82)");
+    test.equals(lastObject.field.tcp.dstport.equals(80).and.equals(81),"(parseInt(lastobject.tcp.dstport)==80)&&(parseInt(lastobject.tcp.dstport)==81)");
+    test.equals(currentObject.fieldNamed("a").equals(80).and.lastObject.fieldNamed("b").equals(81),"(parseInt(object.a)==80)&&(parseInt(lastobject.b)==81)");
+    test.equals(lastObject.fieldNamed("a").equals(80).and.currentObject.fieldNamed("b").equals(81),"(parseInt(lastobject.a)==80)&&(parseInt(object.b)==81)");
 
-    test.equals(currentObject.fieldNamed("a").equals(currentObject).props.funcString.replace(/ /g,''),"(object.a==object.a)");
-    test.equals(currentObject.fieldNamed("a").equals(lastObject).props.funcString.replace(/ /g,''),"(object.a==lastobject.a)");
-    test.equals(currentObject.fieldNamed("a").equals(currentObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(object.a==object.b)");
-    test.equals(currentObject.fieldNamed("a").equals(lastObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(object.a==lastobject.b)");
-    test.equals(lastObject.fieldNamed("a").equals(currentObject.fieldNamed("b")).props.funcString.replace(/ /g,''),"(lastobject.a==object.b)");
-    test.equals(lastObject.fieldNamed("a").equals(currentObject).props.funcString.replace(/ /g,''),"(lastobject.a==object.a)");
+    test.equals(currentObject.fieldNamed("a").equals(currentObject),"(object.a==object.a)");
+    test.equals(currentObject.fieldNamed("a").equals(lastObject),"(object.a==lastobject.a)");
+    test.equals(currentObject.fieldNamed("a").equals(currentObject.fieldNamed("b")),"(object.a==object.b)");
+    test.equals(currentObject.fieldNamed("a").equals(lastObject.fieldNamed("b")),"(object.a==lastobject.b)");
+    test.equals(lastObject.fieldNamed("a").equals(currentObject.fieldNamed("b")),"(lastobject.a==object.b)");
+    test.equals(lastObject.fieldNamed("a").equals(currentObject),"(lastobject.a==object.a)");
 
     test.done();
 };
