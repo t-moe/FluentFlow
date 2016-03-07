@@ -54,13 +54,14 @@ module.exports =  function() {
 
            var afterMatch = function(ruleDef, params) {
                var ruleId = ruleDef.id;
-               if (ruleDef.action) {
-                   ruleDef.action.apply(this,params.slice());
+               var copy = params.slice(); //make one copy for all action handlers
+               for(var i in ruleDef.actions) { //foreach action handler
+                   ruleDef.actions[i].apply(this,copy);
                }
                if (ruleDef.pushTo.length > 0) {
                    for (var k in ruleDef.pushTo) {
                        var toWhere = ruleDef.pushTo[k];
-                       pushObjectTo(ruleId, toWhere, params.slice());
+                       pushObjectTo(ruleId, toWhere, params.slice()); //make one copy per ruleDef
                    }
                }
                /*if (ruleDef.unpushFromTo.length > 0) {
@@ -71,31 +72,46 @@ module.exports =  function() {
                }*/
            };
 
-           for (var ruleId in this.rules) {
+           for (var ruleId in this.rules) { //foreach rule
                var ruleDef = this.rules[ruleId];
                if (!ruleDef.conditional || ruleDef.params.length > 0) { //Rule must be processed
-                   if (ruleDef.rule == null || ruleDef.rule.length == 1 || ruleDef.params.length == 0) { //rule checker doesn't care about the previous matches in chain (e.g. because it takes only one parameter)
-                       if (ruleDef.rule == null || ruleDef.rule(object)) { //rule matches or no matcher set
-                           log("match on rule "+ruleId);
-                           if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
-                               afterMatch(ruleDef,[object]); //Call action, apply pushTo and unpushTo
-                           } else { //Arguments available. Call action once per argument
-                               while (ruleDef.params.length > 0) {
-                                   var param = ruleDef.params.shift(); //remove first argument and process it
-                                   param.unshift(object); //add object front
-                                   afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                   for(var checkerInd=0; checkerInd<ruleDef.checkers.length; checkerInd++) { //foreach checker function
+                       var isLast = (checkerInd == ruleDef.checkers.length-1); //whether this is the last checker function
+                       var checker = ruleDef.checkers[checkerInd];
+                       var caresAboutPrev = (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
+                       if(!caresAboutPrev) { //we only have the current object to pass (no previous in chain) or the checker takes only one argument
+                           if(!checker(object)) { //checker didn't match
+                               break; //abort here: the remaining checkers will be ignored
+                           } else if(isLast) { //if it matched and this was the last checker: MATCH!
+                               log("match on rule "+ruleId);
+                               if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
+                                   afterMatch(ruleDef,[object]); //Call action, apply pushTo and unpushTo
+                               } else { //Arguments available. Call action once per argument
+                                   while (ruleDef.params.length > 0) {
+                                       var param = ruleDef.params.shift(); //remove first argument and process it
+                                       param.unshift(object); //add object front
+                                       afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                                   }
                                }
                            }
-                       }
-                   } else { //rule checker care's about previous objects
-                       for(var i=0; i < ruleDef.params.length; i++) {
-                           var param = ruleDef.params[i].slice(); //copy param!
-                           param.unshift(object); //add object front
-                           if(ruleDef.rule.apply(this,param)) { //rule matches
-                               log("match on rule "+ruleId+" with param", param);
-                               ruleDef.params.splice(i--,1); //remove argument from ruleDef because it matched
-                               afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                       } else { //checker cares about previous rules
+                           for(var paramInd=0; paramInd < ruleDef.params.length; paramInd++) { //foreach param
+                               var param = ruleDef.params[paramInd].slice(); //copy param!
+                               param.unshift(object); //add object front
+
+                               for(var checkerInd2=checkerInd; checkerInd2<ruleDef.checkers.length; checkerInd2++) { //foreach remaining checker function
+                                   isLast = (checkerInd2 == ruleDef.checkers.length-1); //whether this is the last checker function
+                                   checker = ruleDef.checkers[checkerInd2];
+                                   if(!checker.apply(this,param)) { //checker didn't match
+                                       break; //abort here: the remaining checkers will be ignored, next params will be tried
+                                   } else if(isLast) { //if it matched and this was the last checker: MATCH!
+                                       log("match on rule "+ruleId+" with param", param);
+                                       ruleDef.params.splice(paramInd--,1); //remove argument from ruleDef because it matched
+                                       afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                                   }
+                               }
                            }
+                           break; //don't continue the initial for loop
                        }
                    }
                }
@@ -120,8 +136,8 @@ module.exports =  function() {
         this.id = null; //The id of the rule (will be autofilled after calling addRules())
         this.conditional = false; //if set to true the rule will only be executed if there are params available
         this.params = new Array(); //params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
-        this.rule = rule?rule:null; //rule check function. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
-        this.action=action?action:null; //action handler function which will be called on match. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
+        this.checkers = rule?[rule]:[]; //rule check functions. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
+        this.actions=action?[action]:[]; //action handler functions which will be called on match. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
         this.pushTo = new Array(); //ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
         //this.unpushFromTo = new Object(); //pushes to undo. an entry must be an object with the properties from, to (both id's).
     };
@@ -204,8 +220,7 @@ module.exports =  function() {
                 if (typeof(f) !== "function") throw new Error("argument must be a function");
                 for (var k in this.data) {
                     var d = this.data[k];
-                    if (d.action) throw new Error("Action already set");
-                    d.action = f;
+                    d.actions.push(f);
                 }
             }
         };
@@ -257,10 +272,12 @@ module.exports =  function() {
                 if(rule.pushTo.length) {
                     str+="pushesTo: "+rule.pushTo.toString()+" ";
                 }
-                console.log("Rule "+i+": "+str);
-                if(rule.rule) {
-                    console.log("ruleChecker: "+rule.rule.toString());
+                console.log("Rule "+i+": "+str+" Checkers ("+rule.checkers.length+"):");
+                str="";
+                for(var j in rule.checkers) {
+                    str+="Checker "+j+": " + rule.checkers[j].toString()
                 }
+                console.log(str);
             }
             console.log("-----------------------------------------------------------------");
         };
