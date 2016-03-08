@@ -56,6 +56,36 @@ when.matchOn(function(packet) {
 
 In general the callbacks registered with `matchOn` or `then` will get all packets of the previous matches (in the current chain) passed in, starting with the current packet.
 
+## Matching API
+
+### Object: when
+Used to start phrasing a rule. No options, no special props.  
+**Available Members:** _matchOn_
+
+### Function: matchOn(func1, func2, ..., func_n)
+Registers one or multiple functions which will be called to determine if the current "rule" matches. The functions must return `true` if the rule "matched". The first passed function will be called first, and the second function will only be called if the first returned `true` (and so on).  
+  
+If a function takes only one parameter, it will receive the current object as argument. If a function takes multiple parameters then the function receives the previous object (and all objects before the previous) as argument as well. In the latter case the function will be called for every combination of the current/last objects.  
+  
+Performance Hint: If you need access to the last Object (by adding a second parameter), add a function  before it (which uses only one parameter) to filter out some of the objects.
+
+**Available Members:** _followedBy_, _then_
+
+### Function: then(func1, func2, ..., func_n)
+Registers one or multiple function which will be called after the current "rule" has matched.  
+  
+If the functions take only one parameter, then they will only be called once, with the current object as argument. If the function takes multiple parameters then the function receives all previous objects as well, and will be called for every combination.
+
+**Available Members:** _followedBy_, _then_
+
+### Object: followedBy
+Starts describing a new rule, which can only match once the previous rule has matched. The functions registered with `matchOn` of the newly created rule will receive the objects that matched in the last rule as 2nd, 3rd, ... parameter.
+
+**Available Members:** _matchOn_
+
+
+
+
 ## Using the FluentAPI to build the matcher function
 
 Instead of using a callback function in matchOn you can also use the fluent API to automatically build a such function.

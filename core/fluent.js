@@ -289,10 +289,17 @@ var fluent2 = function(){
     };
 
     intern.fluentTerminators = {
-        "then" : function(f) {
-            if(typeof(f)!="function") throw new Error("first parameter must be a function");
+        "then" : function() {
+            var args = Array.prototype.slice.call(arguments);
+            if(args.length==0) {
+                throw new Error("First argument must be a function");
+            }
             var lastStep = this.steps[this.steps.length-1];
-            lastStep.actions.push(f);
+            for(var i in args) {
+                var f = args[i];
+                if(typeof(f)!="function") throw new Error("first parameter must be a function");
+                lastStep.actions.push(f);
+            }
             return this;
         },
         "end" : function() {
@@ -314,14 +321,24 @@ var fluent2 = function(){
         }
     };
     intern.fluentActions = {
-        "matchOn": function(rule) {
-            if(typeof(rule) =="function") {
-                rule = new Matcher.Rule(rule);
-            } else if (!(rule instanceof  Matcher.Rule)) {
-                console.log(rule);
-                throw new Error("Argument must be a function or an instance of Matcher.Rule");
-            }
+        "matchOn": function(rule_1,rule_2,rule_n) {
+            var args = Array.prototype.slice.call(arguments);
             var lastStep = this.steps[this.steps.length-1];
+            var rule = new Matcher.Rule();
+            var startind = 0;
+            if(rule_1 instanceof Matcher.Rule) {
+                rule = rule_1;
+                startind = 1;
+            }
+            for(var i= startind; i< args.length; i++) {
+                var arg = args[i];
+                if(typeof(arg) =="function") {
+                    rule.checkers.push(arg);
+                } else {
+                    console.log(arg);
+                    throw new Error("Argument must be a function");
+                }
+            }
             lastStep.rules.append(rule);
             return fluentReturn(this,intern.fluentTerminators,intern.fluentOperators);
         }
