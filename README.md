@@ -28,11 +28,11 @@ Afterwards you can read them like this:
 
 ## Quickstart Rules
 
-In the simplest case, you register a single matcher function (with `matchOn`) which will be executed to check every packet.  
+In the simplest case, you register a single matcher function (with `match`) which will be executed to check every packet.  
 With `then` you can specify a callback which will be executed if the rule matched.
 
 ```
-when.matchOn(function(packet) { //add callback which is used to check for matches on every packet
+$.match(function(packet) { //add callback which is used to check for matches on every packet
         //Do some checks here on packet struct
         return packet.tcp && packet.tcp.dstport==80; //return true on match
     }).then(function(packet) {
@@ -45,24 +45,24 @@ The second matcher function will have access to the packet of the first match.
 An attached `then` function (at the end) will have access to both packets as well.
 
 ```
-when.matchOn(function(packet) {
+$.match(function(packet) {
         //Do some checks here on packet struct
         return packet.tcp && packet.tcp.dstport==80; //return true on match
-    }).followedBy.matchOn(function(packet,lastpacket){
+    }).followedBy.match(function(packet,lastpacket){
         //Do some checks here on packet OR lastpacket struct
         return packet.http && packet.ip.src==lastpacket.ip.dst; //return true on match
     })
 ```
 
-In general the callbacks registered with `matchOn` or `then` will get all packets of the previous matches (in the current chain) passed in, starting with the current packet.
+In general the callbacks registered with `match` or `then` will get all packets of the previous matches (in the current chain) passed in, starting with the current packet.
 
 ## Matching API
 
-### Object: when
+### Object: $
 Used to start phrasing a rule. No options, no special props.  
-**Available Members:** _matchOn_
+**Available Members:** _match_, _oneOf_
 
-### Function: matchOn(func1, func2, ..., func_n)
+### Function: match(func1, func2, ..., func_n)
 Registers one or multiple functions which will be called to determine if the current "rule" matches. The functions must return `true` if the rule "matched". The first passed function will be called first, and the second function will only be called if the first returned `true` (and so on).  
   
 If a function takes only one parameter, it will receive the current object as argument. If a function takes multiple parameters then the function receives the previous object (and all objects before the previous) as argument as well. In the latter case the function will be called for every combination of the current/last objects.  
@@ -71,24 +71,45 @@ Performance Hint: If you need access to the last Object (by adding a second para
 
 **Available Members:** _followedBy_, _then_
 
+### Function: oneOf(chain1, chain2, ..., chain_n)
+Takes one or multiple subchains and only contains with the following "rules" (`followedBy`), when one of the passed chain matched.
+
+Example:
+```
+$.oneOf( $.match(f1),
+         $.match(f2).followedBy.match(f2)
+       ).then(cb)
+```  
+The final callback `cb` will only be called if either the first matching function `f1` matched, or `f2` matched followed by a object matching `f3`.
+
+**Available Members:** _followedBy_, _then_
+
 ### Function: then(func1, func2, ..., func_n)
 Registers one or multiple function which will be called after the current "rule" has matched.  
   
 If the functions take only one parameter, then they will only be called once, with the current object as argument. If the function takes multiple parameters then the function receives all previous objects as well, and will be called for every combination.
 
+Example see below.
+
 **Available Members:** _followedBy_, _then_
 
 ### Object: followedBy
-Starts describing a new rule, which can only match once the previous rule has matched. The functions registered with `matchOn` of the newly created rule will receive the objects that matched in the last rule as 2nd, 3rd, ... parameter.
+Starts describing a new rule, which can only match once the previous rule has matched. The functions registered with `match` of the newly created rule will receive the objects that matched in the last rule as 2nd, 3rd, ... parameter.
 
-**Available Members:** _matchOn_
+Example:
+```
+$.match(f1).followedBy.match(f2).then(cb)
+```
+The final callback `cb` will only be called if `f1` matched followed by a object matching `f2`.
+
+**Available Members:** _match_, _oneOf_
 
 
 
 
 ## Using the FluentAPI to build the matcher function
 
-Instead of using a callback function in matchOn you can also use the fluent API to automatically build a such function.
+Instead of using a callback function in `match` you can also use the fluent API to automatically build a such function.
 
 Here are some examples:
 

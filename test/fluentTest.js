@@ -3,51 +3,49 @@
  */
 var Fluent = require("../core/fluent.js");
 var Matcher = require("../core/matcher.js");
-var when = Fluent.Matcher().starter;
+var $ = Fluent.Matcher().starter;
 
 exports.testFluentOneStep = function(test) {
 
-    test.equals(when.steps.length,1);
-    test.equals(when.steps[0].rules.size(),0);
-    test.equals(when.steps[0].actions.length,0);
+    test.ok($.steps instanceof Array);
+
 
     var x = new Matcher.Rule();
     var y = new Matcher.Rule();
     var z = new Matcher.Rule();
-    var t1 = when.matchOn(x);
+    var t1 = $.match(x);
     test.equals(t1.steps.length,1);
-    test.equals(t1.steps[0].actions.length,0);
-    test.equals(t1.steps[0].rules.size(),1);
-    test.equals(t1.steps[0].rules.at(0),x);
+    test.equals(t1.steps[0].startSet.size(),1);
+    test.equals(t1.steps[0].startSet.at(0),x);
+    test.equals(t1.steps[0].endSet.size(),1);
+    test.equals(t1.steps[0].endSet.at(0),x);
 
-    var t2 = t1.or.matchOn(y);
-    test.equals(t2.steps.length,1);
-    test.equals(t2.steps[0].rules.size(),2);
-    test.equals(t2.steps[0].actions.length,0);
-    test.equals(t2.steps[0].rules.at(0),x);
-    test.equals(t2.steps[0].rules.at(1),y);
+    var t2 = $.oneOf($.match(x),$.match(y));
+    test.equals(t2.steps[0].startSet.size(),2);
+    test.equals(t2.steps[0].startSet.at(0),x);
+    test.equals(t2.steps[0].startSet.at(1),y);
+    test.equals(t2.steps[0].endSet.size(),2);
+    test.equals(t2.steps[0].endSet.at(0),x);
+    test.equals(t2.steps[0].endSet.at(1),y);
 
-    var t3 = t2.or.matchOn(z);
-    test.equals(t3.steps.length,1);
-    test.equals(t3.steps[0].rules.size(),3);
-    test.equals(t3.steps[0].actions.length,0);
-    test.equals(t3.steps[0].rules.at(0),x);
-    test.equals(t3.steps[0].rules.at(1),y);
-    test.equals(t3.steps[0].rules.at(2),z);
+
 
     var f1 = function() {};
-    var f2 = function() {};
-    var t4 = t3.then(f1);
-    test.equals(t4.steps[0].actions.length,1);
-    test.equals(t4.steps[0].actions[0],f1);
-    var t5 = t4.then(f2);
-    test.equals(t5.steps[0].actions.length,2);
-    test.equals(t5.steps[0].actions[0],f1);
-    test.equals(t5.steps[0].actions[1],f2);
+    var t4 = t2.then(f1);
+    test.equals(x.actions.length,1);
+    test.equals(x.actions[0],f1);
+    test.equals(y.actions.length,1);
+    test.equals(y.actions[0],f1);
 
-    test.equals(when.steps.length,1);
-    test.equals(when.steps[0].rules.size(),0);
-    test.equals(when.steps[0].actions.length,0);
+    var f2 = function() {};
+    var f3 = function() {};
+
+    var t5 = t4.then(f2,f3);
+    test.deepEqual(x.actions,[f1,f2,f3]);
+    test.deepEqual(y.actions,[f1,f2,f3]);
+
+    test.equals($.steps.length,0);
+
 
 
     test.done();
@@ -60,23 +58,37 @@ exports.testFluentTwoSteps = function(test) {
     var z = new Matcher.Rule();
     var f1 = function() {};
     var f2 = function() {};
-    var s1 = when.matchOn(x).or.matchOn(y).or.matchOn(z).then(f1).then(f2);
-    test.equals(s1.steps[0].rules.size(),3);
-    test.equals(s1.steps[0].actions.length,2);
+    var s1 = $.oneOf($.match(x),$.match(y),$.match(z)).then(f1).then(f2);
+    test.equals(s1.steps[0].startSet.size(),3);
+    test.equals(s1.steps[0].endSet.size(),3);
+    test.deepEqual(x.actions,[f1,f2]);
+    test.deepEqual(y.actions,[f1,f2]);
+    test.deepEqual(z.actions,[f1,f2]);
 
-    var s2 = s1.followedBy;
-    test.equals(s2.steps.length,2);
-    test.equals(s2.steps[1].rules.size(),0);
-    test.equals(s2.steps[1].actions.length,0);
 
     var x2 = new Matcher.Rule();
     var y2 = new Matcher.Rule();
+    var z2 = new Matcher.Rule();
     var f3 = function () {};
 
-    var t1 = s2.matchOn(x2).or.matchOn(y2).then(f3);
-    test.equals(t1.steps[1].rules.at(0),x2);
-    test.equals(t1.steps[1].rules.at(1),y2);
-    test.equals(t1.steps[1].actions.length,1);
+    var t1 = s1.followedBy.oneOf($.match(x2),$.match(y2).followedBy.match(z2)).then(f3);
+    test.equals(t1.steps.length,2);
+    test.equals(t1.steps[1].startSet.at(0),x2);
+    test.equals(t1.steps[1].startSet.at(1),y2);
+    test.equals(t1.steps[1].endSet.at(0),x2);
+    test.equals(t1.steps[1].endSet.at(1),z2);
+
+
+    var fin = new Matcher.Rule();
+    t1.followedBy.match(fin).end(); //compiles the chain and makes the connections between the rules
+
+
+    test.deepEqual(x.pushTo,[x2,y2]);
+    test.deepEqual(y.pushTo,[x2,y2]);
+    test.deepEqual(z.pushTo,[x2,y2]);
+    test.deepEqual(x2.pushTo,[fin]);
+    test.deepEqual(y2.pushTo,[z2]);
+    test.deepEqual(z2.pushTo,[fin]);
 
     test.done();
 };

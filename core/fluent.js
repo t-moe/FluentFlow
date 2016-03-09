@@ -266,26 +266,18 @@ var fluent2 = function(){
     var fluentReturn = function(that){
         var args = Array.prototype.slice.call(arguments);
         args[0]={steps: that.steps};
-        that.steps = [{ //reset start object (when aka fluent2) to defaults
-            rules: new Matcher.Set(), //without any rules
-            actions: [] //without any actions
-        }];
+        that.steps = [];
         return extend.apply(null,args);
     };
 
-    intern.fluentOperators = {
-        get and() {
-            throw new Error("not fully implemented");
-            var lastStep = this.steps[this.steps.length-1];
-            lastStep.optr = "and";
-            return fluentReturn(this,intern.fluentActions);
-        },
-        get or() {
-            var lastStep = this.steps[this.steps.length-1];
-            lastStep.optr = "or";
-            return fluentReturn(this,intern.fluentActions);
-        },
-
+    var mergeSteps = function(that) {
+        while(that.steps.length>=2) {
+            var step1= that.steps.splice(1,1)[0];
+            var step0 = that.steps[0];
+            step0.endSet.pushTo(step1.startSet);
+            step0.endSet = step1.endSet;
+        }
+        return that;
     };
 
     intern.fluentTerminators = {
@@ -296,34 +288,28 @@ var fluent2 = function(){
             }
             var lastStep = this.steps[this.steps.length-1];
             for(var i in args) {
-                var f = args[i];
-                if(typeof(f)!="function") throw new Error("first parameter must be a function");
-                lastStep.actions.push(f);
+                lastStep.endSet.addAction(args[i]);
             }
             return this;
         },
         "end" : function() {
-            for(var i=0; i<this.steps.length; i++) {
-                var step = this.steps[i];
-                step.rules.addAction.apply(step.rules,step.actions);
-                if(i<this.steps.length-1) {
-                    step.rules.pushTo(this.steps[i+1].rules);
-                }
-            }
-            return this.steps[0].rules;
+            mergeSteps(this);
+            return this.steps[0].startSet;
         },
         get followedBy() {
-            this.steps.push({ //adding an empty step
-                rules: new Matcher.Set(), //without any rules
-                actions: [] //without any actions
-            });
             return fluentReturn(this,intern.fluentActions);
         }
     };
     intern.fluentActions = {
-        "matchOn": function(rule_1,rule_2,rule_n) {
+        "match": function(rule_1,rule_2,rule_n) {
             var args = Array.prototype.slice.call(arguments);
-            var lastStep = this.steps[this.steps.length-1];
+            if(args.length==0) throw new Error("You must provide at least one argument");
+
+            var newStep = { //adding an empty step
+                startSet: new Matcher.Set(),
+                endSet: new Matcher.Set()
+            };
+
             var rule = new Matcher.Rule();
             var startind = 0;
             if(rule_1 instanceof Matcher.Rule) {
@@ -339,16 +325,43 @@ var fluent2 = function(){
                     throw new Error("Argument must be a function");
                 }
             }
-            lastStep.rules.append(rule);
-            return fluentReturn(this,intern.fluentTerminators,intern.fluentOperators);
+            newStep.startSet.append(rule);
+            newStep.endSet.append(rule);
+            this.steps.push(newStep);
+
+            return fluentReturn(this,intern.fluentTerminators);
+        },
+        "oneOf" : function(chain_1,chain_2,chain_n) {
+            var args = Array.prototype.slice.call(arguments);
+            if(args.length==0) throw new Error("You must provide at least one argument");
+
+            var newStep = { //adding an empty step
+                startSet: new Matcher.Set(),
+                endSet: new Matcher.Set()
+            };
+
+            for(var i= 0; i< args.length; i++) {
+                var arg = args[i];
+
+                if(typeof(arg)=="object" && arg.steps instanceof Array) {
+                    mergeSteps(arg);
+                    newStep.startSet.append(arg.steps[0].startSet);
+                    newStep.endSet.append(arg.steps[0].endSet);
+                } else {
+                    console.log(arg);
+                    throw new Error("Argument must be an instance of matching fluent");
+                }
+            }
+
+            this.steps.push(newStep);
+
+            return fluentReturn(this,intern.fluentTerminators);
+
         }
     };
 
     intern.starter = extend({
-        "steps" : [{ //adding an empty step
-            rules: new Matcher.Set(), //without any rules
-            actions: [] //without any actions
-        }]
+        "steps" : []
     },intern.fluentActions);
 
     return intern;
