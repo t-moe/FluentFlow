@@ -132,6 +132,7 @@ module.exports =  function() {
        };
 
    };
+
     obj.Rule = function(rule,action) {
         this.id = null; //The id of the rule (will be autofilled after calling addRules())
         this.conditional = false; //if set to true the rule will only be executed if there are params available
@@ -154,7 +155,6 @@ module.exports =  function() {
                 } else if(arg instanceof obj.Rule) {
                     this.data.push(arg);
                 } else {
-                    console.log(arg);
                     throw new Error("invalid argument type");
                 }
             }
@@ -182,7 +182,6 @@ module.exports =  function() {
                             where.pushTo.push(what);
                         }
                     } else {
-                        console.log(what);
                         throw new Error("invalid argument type");
                     }
                 }
@@ -234,6 +233,7 @@ module.exports =  function() {
         this.append = function() {
             for (var i in arguments) {
                 var arg = arguments[i];
+                console.log(arg);
                 if(arg instanceof obj.Set) {
                     for(var k in arg.data) {
                         this.assign(arg.data[k]);
@@ -241,7 +241,6 @@ module.exports =  function() {
                 } else if(arg instanceof obj.Rule) {
                     this.assign(arg);
                 } else {
-                    console.log(arg);
                     throw new Error("invalid argument type");
                 }
             }

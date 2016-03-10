@@ -19,8 +19,8 @@ intern.pdmlFields = { //fields which will be made available on packet.field.* or
 };
 
 intern.pdmlStarters = {
-    "packet":Fluent.Object.currentObject, //make packet.* an alias for currentObject.*
-    "lastPacket":Fluent.Object.lastObject //make lastPacket.* an alias for lastObject.*
+    "packet": Fluent.Object.currentObject, //make packet.* an alias for currentObject.*
+    "lastPacket": Fluent.Object.lastObject //make lastPacket.* an alias for lastObject.*
 };
 
 //---------------------------------------------------------------

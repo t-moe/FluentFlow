@@ -5,6 +5,7 @@
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
     "split": "latest",
+    "vm2": "^1.0.1",
     "xml2js": "latest"
   },
   "devDependencies": {
