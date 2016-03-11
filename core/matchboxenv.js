@@ -17,7 +17,18 @@ const self = {
         m.addRules(builder.rules);
     },
     match: function(obj){
-        m.matchNext(obj);
+        switch(typeof(obj)){
+            case 'array':
+                obj.forEach(function(obj){
+                    m.matchNext(obj);
+                });
+            break;
+            case 'object':
+                m.matchNext(obj);
+            break;
+            default:
+                throw new Error("invalid argument type:" + typeof(obj));
+        }
     }
 }
 

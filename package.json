@@ -3,9 +3,10 @@
   "main": "modules.js",
   "version": "0.0.1",
   "scripts": {
-    "test": "node_modules/nodeunit/bin/nodeunit"
+    "test": "node --harmony-proxies node_modules/nodeunit/bin/nodeunit"
   },
   "dependencies": {
+    "harmony-reflect": "^1.4.2",
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
     "split": "latest",
