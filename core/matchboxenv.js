@@ -1,6 +1,5 @@
 const Fluent = require(__dirname + '/fluent.js');
 const Matcher = require(__dirname + '/matcher.js');
-const jsp = require("uglify-js").parser;
 
 'use strict';
 
@@ -10,8 +9,6 @@ const m = new Matcher();
 const self = {
     load: function(rulesRaw){
         self.rulesRaw = rulesRaw;
-        // parse javascript code before evaluation
-        jsp.parse(self.rulesRaw);
         self.rules = eval(self.rulesRaw);
         const builder = new Matcher.Builder()
         self.rules.forEach(function(r){
