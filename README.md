@@ -2,8 +2,7 @@
 
 ## What is fluent flow?
 
-FluentFlow is a filtering tool for json objects. The rules are written as "javascript functions" or using a fluent API (jquery like).  
-The project was started with the intent to filter pdml output produced by wireshark (a network traffic capture & analysis tool). But the whole Matcher Core, Fluent API and the Unit tests are completely context free (= not limited to "network data").
+FluentFlow is a filtering tool for json objects. The rules are written as "javascript functions" or using a fluent API (jquery like). The project was started with the intent to filter pdml output produced by wireshark (a network traffic capture & analysis tool). But the whole Matcher Core, Fluent API and the Unit tests are completely context free (= not limited to "network data").
 
 ## Usage
 
@@ -172,4 +171,4 @@ Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport
 
 ## Unit tests
 
-get 
+```npm test```
