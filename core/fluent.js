@@ -2,7 +2,7 @@
  * Created by Timo on 26.02.2016.
  */
 var extend = require('mini-complete-assign');
-var Matcher = require("../core/matcher.js");
+var Matcher = require(__dirname + "/matcher.js");
 
 'use strict';
 

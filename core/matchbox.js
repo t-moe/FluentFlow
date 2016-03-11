@@ -3,7 +3,7 @@ const NodeVM = require('vm2').NodeVM;
 
 'use strict';
 
-const MATCHBOX_ENV = './matchboxenv.js';
+const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
 const MATCHBOX_ENV_HIDDEN_ATTRS = [ 'load' ];
 
 module.exports = function(rules, sandbox){

@@ -1,5 +1,5 @@
 const fs = require('fs');
-const Matchbox = require("../core/matchbox.js");
+const Matchbox = require(__dirname + "/../core/matchbox.js");
 
 const RULES = fs.readFileSync(__dirname + '/meta/stringRules.js', {encoding: 'utf-8'});
 const RULES_FAIL = fs.readFileSync(__dirname + '/meta/stringRules_fail.js', {encoding: 'utf-8'});

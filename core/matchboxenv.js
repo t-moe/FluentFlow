@@ -1,5 +1,5 @@
-const Fluent = require('./fluent.js');
-const Matcher = require('./matcher.js');
+const Fluent = require(__dirname + '/fluent.js');
+const Matcher = require(__dirname + '/matcher.js');
 const jsp = require("uglify-js").parser;
 
 'use strict';
