@@ -4,6 +4,5 @@
         //Do some checks here on packet struct
         return true; //return true on match
     }).then(function(obj) {
-        console.log('match');
     }),
 ];
