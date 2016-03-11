@@ -169,3 +169,7 @@ will translate into
 
   
 Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport`. This only works for properties which have been registered (TODO: explain).
+
+## Unit tests
+
+get 

@@ -233,7 +233,6 @@ module.exports =  function() {
         this.append = function() {
             for (var i in arguments) {
                 var arg = arguments[i];
-                console.log(arg);
                 if(arg instanceof obj.Set) {
                     for(var k in arg.data) {
                         this.assign(arg.data[k]);
