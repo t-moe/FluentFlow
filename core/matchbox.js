@@ -1,6 +1,7 @@
 require('harmony-reflect');
+const Module = module.constructor;
 const NodeVM = require('vm2').NodeVM;
-const UglifyJS= require('uglify-js');
+const UglifyJS = require('uglify-js');
 
 'use strict';
 
@@ -19,7 +20,6 @@ module.exports = function(rulesRaw, sandbox){
     });
     const matchbox = vm.run("module.exports = require('"+ MATCHBOX_ENV +"')", __filename);
     vm.call(matchbox.load, rulesRaw);
-
     return new Proxy(matchbox, {
         apply: function(target, thisArg, argumentsList) {
             vm.call(thisArg[target], argumentsList);

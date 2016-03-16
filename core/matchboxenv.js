@@ -7,8 +7,10 @@ const $ = Fluent.Matcher().starter;
 const m = new Matcher();
 
 const self = {
-    load: function(rulesRaw){
-        self.rulesRaw = rulesRaw;
+    load: function(rulesRaw, fields, starters){
+        self.fields = fields || {};
+        self.starters = starters || {};
+        self.rulesRaw = rulesRaw || '';
         self.rules = eval(self.rulesRaw);
         const builder = new Matcher.Builder()
         self.rules.forEach(function(r){

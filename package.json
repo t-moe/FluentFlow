@@ -6,13 +6,14 @@
     "test": "node --harmony-proxies node_modules/nodeunit/bin/nodeunit"
   },
   "dependencies": {
+    "JSONStream": "^1.1.1",
+    "event-stream": "^3.3.2",
     "harmony-reflect": "^1.4.2",
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
-    "split": "latest",
+    "through2": "^2.0.1",
     "uglify-js": "^2.6.2",
-    "vm2": "^1.0.1",
-    "xml2js": "latest"
+    "vm2": "^1.0.1"
   },
   "devDependencies": {
     "nodeunit": "latest"
