@@ -11,9 +11,8 @@
     "harmony-reflect": "^1.4.2",
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
-    "through2": "^2.0.1",
     "uglify-js": "^2.6.2",
-    "vm2": "^1.0.1"
+    "vm2": "git://github.com/Tribex/vm2.git"
   },
   "devDependencies": {
     "nodeunit": "latest"

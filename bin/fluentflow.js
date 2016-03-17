@@ -4,51 +4,69 @@
  */
 const fs = require('fs');
 const argv = require('minimist')(process.argv.slice(2));
-const through2  = require('through2');
 const JSONStream = require('JSONStream');
 const es = require('event-stream')
 const Matchbox = require(__dirname + '/../core/matchbox.js');
 
 var rulesRaw = '';
 
-function showHelp(){
+function showHelp(ret){
     console.log(
-        'Usage: ' + __filename + ' [OPTIONS] rules \n'+
+        'Usage: ' + __filename + ' [OPTIONS] rulesFile\n'+
         '\n'+
-        'rules              : path to the rule file\n'+
+        'rulesFile          : path to the rules file\n'+
         'OPTIONS:\n'+
+        '   -j JSONPath     : JSONPath expression for object splittin\n' +
+        '   -t              : Test if rules are valid\n' +
         '   -h              : print this help\n'
     );
-    process.exit();
+    process.exit(ret);
 };
 
 try{
-    var path = argv._[0]
-    if(typeof path == 'string'){
-        rulesRaw = fs.readFileSync(argv._[0], {encoding: 'utf-8'});
+    var rulesFile = argv._[0]
+    if(typeof rulesFile != 'string'){
+        throw new Error('rulesFile missing');
     }
+    if(!fs.statSync(rulesFile).isFile()){
+        throw new Error('rulesFile not a file');
+    }
+    rulesRaw = fs.readFileSync(argv._[0], {encoding: 'utf-8'});
     if(rulesRaw.length <= 0){
-        throw new Error('file empty');
+        throw new Error('rulesFile empty');
     }
 } catch(e){
-    console.error('Failed reading rules: ' + e);
-    showHelp();
+    console.error(e);
+    showHelp(1);
+}
+
+// Read jsonPath, default: don't split objects (true)
+var jsonPath = true;
+if(argv.j){
+    jsonPath = argv.j;
+}
+
+// help
+if(argv.h){
+    showHelp(1);
 }
 
 try{
     const matchbox = new Matchbox(rulesRaw);
 } catch(e) {
-    console.error('Failed initializung sandbox: ' + e);
-    showHelp();
+    console.error('Failed initializung matchbox');
+    if(e.message && e.line){
+        console.error(e.message + ' at line: ' + e.line);
+    }
+    process.exit(1);
 }
 
-// help
-if(argv.h){
-    showHelp();
+if(argv.t){
+    process.exit(0);
 }
 
 process.stdin
-    .pipe(JSONStream.parse(true))
+    .pipe(JSONStream.parse(jsonPath))
     .pipe(es.mapSync(function(obj) {
         matchbox.match(obj);
         return obj;
