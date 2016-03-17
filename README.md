@@ -42,7 +42,7 @@ Start FluentFlow:
 ```
 $ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | bin/fluentflow.js rules.js -j '*'
 ```
-  * Note: -j '*' because github responds with an array of json objects which we should to split
+  * Note: -j '*' because github responds with an array of json objects which we should split before processing
 
 ## Quickstart Rules
 
