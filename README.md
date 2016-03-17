@@ -22,7 +22,7 @@ OPTIONS:
 ```
 
 ## Getting started
-1. Configure your rules in rules.js.
+Configure rules.js:
 ```javascript
 [
     // Check if somebody forked this repository after submitting an issue
@@ -37,7 +37,8 @@ OPTIONS:
     })
 ];
 ```
-2. Start FluentFlow:
+
+Start FluentFlow:
 ```
 $ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | bin/fluentflow.js rules.js -j '*'
 ```
