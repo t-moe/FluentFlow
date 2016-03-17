@@ -1,30 +1,47 @@
 # FluentFlow
+FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.
 
-## What is fluent flow?
+## Installation
 
-FluentFlow is a filtering tool for json objects. The rules are written as "javascript functions" or using a fluent API (jquery like).  
-The project was started with the intent to filter pdml output produced by wireshark (a network traffic capture & analysis tool). But the whole Matcher Core, Fluent API and the Unit tests are completely context free (= not limited to "network data").
+```
+    npm install fluentflow -g
+```
+(not working yet)
 
 ## Usage
 
-Configure your rules in rules.js. Afterwards start FluentFlow using one of the following methods:
+```
+Usage: bin/fluentflow.js [OPTIONS] rulesFile
 
-### Sniff on live interface using tshark
+rulesFile          : path to the rules file
+OPTIONS:
+   -j JSONPath     : JSONPath expression
+   -t              : test if rules are valid
+   -h              : print this help
+```
 
+## Getting started
+Configure rules.js:
+```javascript
+[
+    // Check if somebody forked this repository after submitting an issue
+    // Reverse order because the github api displays events in this order
+    $.match(function(currentObject) {
+        return currentObject.type == "ForkEvent"
+    }).followedBy.match(function(currentObject, lastObject){
+        return currentObject.type == "IssuesEvent"
+        && currentObject.actor.login == lastObject.actor.login;
+    }).then(function(fork, issue){
+        console.log('User: ' + fork.actor.login + ' forked after writing issue: ' + issue.id);
+    })
+];
+```
 
-```node main.js -i enp3s0``` (Replace enp3s0 with your interface)
-
-### Read a pdml file
-
-Pdml files can be generated using wireshark or tshark.
-Afterwards you can read them like this:
-
-```node main.js -p ./example.pdml```
-
-### Read pdml from stdin
-
-```tshark -i enp3s0 -T pdml   2> /dev/null | node main.js -p-```
-
+Start FluentFlow:
+```
+$ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | bin/fluentflow.js rules.js -j '*'
+```
+  * Note: -j '*' because github responds with an array of json objects which we should split before processing
 
 ## Quickstart Rules
 
@@ -169,3 +186,9 @@ will translate into
 
   
 Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport`. This only works for properties which have been registered (TODO: explain).
+
+## Unit tests
+
+```npm test```
+
+[pdml2flow]: https://github.com/Enteee/pdml2flow

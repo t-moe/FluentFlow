@@ -1,13 +1,10 @@
 /**
  * Created by Timo on 26.02.2016.
  */
-var completeAssign = require('mini-complete-assign');
-var Matcher = require("../core/matcher.js");
+var extend = require('mini-complete-assign');
+var Matcher = require(__dirname + "/matcher.js");
 
 'use strict';
-
-
-var extend = completeAssign;
 
 var fluentStarters = {
     currentObject: {},
@@ -28,14 +25,14 @@ var fluent = function(fields,starters) {
 
         /* Here's how the field parameter or the defaultFields should be structured:
 
-         "tcp" : ["srcport","dstport"], //defines tcp.srcport and tcp.dstport
-         "udp" : ["srcport","dstport"], //udp.srcport and udp.dstport
-         "ip" : ["src","dst"], //ip.dst and ip.src
-         "http" : { //defines http.header.aaa, http.header.bbb and http.body
-         "header" : ["aaa","bbb"],
-         "body" : {}
+           "tcp" : ["srcport","dstport"], //defines tcp.srcport and tcp.dstport
+           "udp" : ["srcport","dstport"], //udp.srcport and udp.dstport
+           "ip" : ["src","dst"], //ip.dst and ip.src
+           "http" : { //defines http.header.aaa, http.header.bbb and http.body
+           "header" : ["aaa","bbb"],
+           "body" : {}
 
-         }
+           }
          */
     };
     var fields =extend({},defaultFields,fields || {});
@@ -66,8 +63,6 @@ var fluent = function(fields,starters) {
         }
         return fluentReturn(obj,intern.fluentTermOperators,subfields || {},x);
     };
-
-
 
     var prepareFluentFields = function(obj) {
         var ret = {};
@@ -259,8 +254,6 @@ var fluent = function(fields,starters) {
     return extend(intern,newFluentStarters({}));
 };
 
-
-
 var fluent2 = function(){
     var intern = { };
     var fluentReturn = function(that){
@@ -361,14 +354,14 @@ var fluent2 = function(){
     };
 
     intern.starter = extend({
-        "steps" : []
-    },intern.fluentActions);
+            "steps" : []
+            },  intern.fluentActions);
 
     return intern;
 };
 
 
 module.exports = {
-    "Object" : extend(fluent,fluentStarters),
+    "Object" : extend(fluent, fluentStarters),
     "Matcher" : fluent2
 };
