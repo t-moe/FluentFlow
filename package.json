@@ -16,5 +16,8 @@
   },
   "devDependencies": {
     "nodeunit": "latest"
+  },
+  {
+    "licence": "GPL-3.0"
   }
 }
