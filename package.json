@@ -20,7 +20,7 @@
   "license": "GPL-3.0",
   "description": "FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.",
   "bin": {
-    "fluentflow": "fluentflow.js"
+    "fluentflow": "./bin/fluentflow.js"
   },
   "directories": {
     "test": "test"
