@@ -16,12 +16,17 @@ function showHelp(ret){
         '\n'+
         'rulesFile          : path to the rules file\n'+
         'OPTIONS:\n'+
-        '   -j JSONPath     : JSONPath expression for object splittin\n' +
-        '   -t              : Test if rules are valid\n' +
+        '   -j JSONPath     : JSONPath expression\n' +
+        '   -t              : test if rules are valid\n' +
         '   -h              : print this help\n'
     );
     process.exit(ret);
 };
+
+// help
+if(argv.h){
+    showHelp(0);
+}
 
 try{
     var rulesFile = argv._[0]
@@ -44,11 +49,6 @@ try{
 var jsonPath = true;
 if(argv.j){
     jsonPath = argv.j;
-}
-
-// help
-if(argv.h){
-    showHelp(1);
 }
 
 try{

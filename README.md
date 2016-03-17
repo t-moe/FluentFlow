@@ -11,13 +11,12 @@ FluentFlow is matching engine which lets you easily define 'followed by'-relatio
 ## Usage
 
 ```
-$ bin/fluentflow.js -h
 Usage: bin/fluentflow.js [OPTIONS] rulesFile
 
 rulesFile          : path to the rules file
 OPTIONS:
-   -j JSONPath     : JSONPath expression for object splittin
-   -t              : Test if rules are valid
+   -j JSONPath     : JSONPath expression
+   -t              : test if rules are valid
    -h              : print this help
 ```
 
