@@ -1,7 +1,7 @@
 {
   "name": "fluentflow",
   "main": "modules.js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "scripts": {
     "test": "node --harmony-proxies node_modules/nodeunit/bin/nodeunit"
   },
@@ -36,7 +36,7 @@
   ],
   "author": "T-moe <timolang@gmail.com>",
   "contributors": [
-        "Ente <ducksource@duckpond.ch>"  
+    "Ente <ducksource@duckpond.ch>"
   ],
   "bugs": {
     "url": "https://github.com/t-moe/FluentFlow/issues"
