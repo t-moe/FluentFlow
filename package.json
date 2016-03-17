@@ -12,12 +12,10 @@
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
     "uglify-js": "^2.6.2",
-    "vm2": "git://github.com/Tribex/vm2.git"
+    "vm2": "^2.0.0"
   },
   "devDependencies": {
     "nodeunit": "latest"
   },
-  {
-    "licence": "GPL-3.0"
-  }
+  "licence": "GPL-3.0"
 }

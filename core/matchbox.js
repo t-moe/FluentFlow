@@ -16,6 +16,7 @@ module.exports = function(rulesRaw, sandbox){
     const vm = new NodeVM({
         require: true,
         requireExternal: true,
+        requireNative: [],
         sandbox: sandbox,
     });
     const matchbox = vm.run("module.exports = require('"+ MATCHBOX_ENV +"')", __filename);
