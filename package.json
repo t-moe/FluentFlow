@@ -15,7 +15,31 @@
     "vm2": "^2.0.0"
   },
   "devDependencies": {
-    "nodeunit": "latest"
+    "nodeunit": "^0.9.1"
   },
-  "licence": "GPL-3.0"
+  "license": "GPL-3.0",
+  "description": "FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.",
+  "bin": {
+    "fluentflow": "fluentflow.js"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t-moe/FluentFlow.git"
+  },
+  "keywords": [
+    "json",
+    "matcher",
+    "fluent"
+  ],
+  "author": "T-moe <timolang@gmail.com>",
+  "contributors": [
+        "Ente <ducksource@duckpond.ch>"  
+  ],
+  "bugs": {
+    "url": "https://github.com/t-moe/FluentFlow/issues"
+  },
+  "homepage": "https://github.com/t-moe/FluentFlow#readme"
 }
