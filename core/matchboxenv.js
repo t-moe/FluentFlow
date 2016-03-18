@@ -13,12 +13,14 @@ const self = {
     load: function(rulesRaw){
         self.rulesRaw = rulesRaw || '';
         self.rules = eval(self.rulesRaw);
-        if(!self.rules){
+        const builder = new Matcher.Builder()
+        if(!(self.rules instanceof Array)){
             throw new Error('No rules defined');
         }
-        const builder = new Matcher.Builder()
         self.rules.forEach(function(r){
-            builder.append(r.end());
+            if(self.rules instanceof Array){
+                builder.append(r.end());
+            }
         });
         m.addRules(builder.rules);
     },
