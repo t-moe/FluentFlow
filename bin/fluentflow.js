@@ -51,12 +51,16 @@ if(argv.j){
     jsonPath = argv.j;
 }
 
+
+
 try{
     const matchbox = new Matchbox(rulesRaw);
 } catch(e) {
-    console.error('Failed initializung matchbox');
+    console.error('Failed initializing matchbox');
     if(e.message && e.line){
         console.error(e.message + ' at line: ' + e.line);
+    } else {
+        console.error(e);
     }
     process.exit(1);
 }
@@ -68,6 +72,6 @@ if(argv.t){
 process.stdin
     .pipe(JSONStream.parse(jsonPath))
     .pipe(es.mapSync(function(obj) {
-        matchbox.match(obj);
+        matchbox.matchNext(obj);
         return obj;
     }));

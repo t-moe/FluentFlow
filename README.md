@@ -1,17 +1,18 @@
 # FluentFlow
 FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.
 
-## Installation
+## FluentFlow as Command Line Tool
+
+### Installation
+First install fluent flow globally
+```
+$ sudo npm install -g fluentflow 
+```
+
+### Usage
 
 ```
-    npm install fluentflow -g
-```
-(not working yet)
-
-## Usage
-
-```
-Usage: bin/fluentflow.js [OPTIONS] rulesFile
+Usage: fluentflow.js [OPTIONS] rulesFile
 
 rulesFile          : path to the rules file
 OPTIONS:
@@ -20,7 +21,7 @@ OPTIONS:
    -h              : print this help
 ```
 
-## Getting started
+### Getting started
 Configure rules.js:
 ```javascript
 [
@@ -39,39 +40,121 @@ Configure rules.js:
 
 Start FluentFlow:
 ```
-$ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | bin/fluentflow.js rules.js -j '*'
+$ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | fluentflow rules.js -j '*'
 ```
   * Note: -j '*' because github responds with an array of json objects which we should split before processing
 
+## FluentFlow as a Library
+
+### Installation
+First add fluentflow to your project
+```
+$ npm install --save fluentflow 
+```
+
+### Usage
+
+Use it in sandboxed mode:
+```
+const Matchbox = require("fluentflow").Matchbox;
+
+const rules = require("fs").readFileSync("rules.js", {encoding: 'utf-8'});
+//const rules = "[$.match(....).then(), $.match(...).followedBy.match(...)]";
+
+try{
+    const matchbox = new Matchbox(rules);
+} catch(e) {
+    console.error('Failed initializing matchbox');
+    process.exit(1);
+}
+
+const objects = [
+    {"bar":2},
+    {"bar":5},
+    {"bar":7},
+    {"fooo":42}
+];
+
+objects.forEach(function(obj) {
+    matchbox.matchNext(obj);
+});
+```
+
+Use it without sandbox:
+```
+const FluentFlow = require("fluentflow");
+const Fluent = FluentFlow.Fluent;
+const $ = Fluent.Matcher().starter;
+//The following 3 lines are only required if you want to use the fluent API to build matcher functions (e.g. `currentObject.field....exists.and....`)
+const ObjectFluent = Fluent.Object();
+const currentObject = ObjectFluent.currentObject;
+const lastObject = ObjectFluent.lastObject;
+
+const rules = [
+    $.match(function(obj){return obj.bar>3;}).then(console.log),
+    $.match(currentObject.fieldNamed("fooo").exists).then(console.log)
+];
+
+const builder = new FluentFlow.Matcher.Builder();
+for (var i in rules) {
+    builder.append(rules[i].end());
+}
+
+builder.printRules();
+
+const matcher = new FluentFlow.Matcher();
+matcher.addRules(builder.rules);
+
+const objects = [
+    {"bar":2},
+    {"bar":5},
+    {"bar":7},
+    {"fooo":42}
+];
+
+objects.forEach(function(obj) {
+    matcher.matchNext(obj);
+});
+
+//Output:
+// { bar: 5 }
+// { bar: 7 }
+// { fooo: 42 }
+
+```
+
+
+
+
 ## Quickstart Rules
 
-In the simplest case, you register a single matcher function (with `match`) which will be executed to check every packet.  
+In the simplest case, you register a single matcher function (with `match`) which will be executed to check every object.  
 With `then` you can specify a callback which will be executed if the rule matched.
 
 ```
-$.match(function(packet) { //add callback which is used to check for matches on every packet
-        //Do some checks here on packet struct
-        return packet.tcp && packet.tcp.dstport==80; //return true on match
-    }).then(function(packet) {
-        console.log("Hey it matched",packet);
+$.match(function(object) { //add callback which is used to check for matches on every object
+        //Do some checks here on object struct
+        return object.tcp && object.tcp.dstport==80; //return true on match
+    }).then(function(object) {
+        console.log("Hey it matched",object);
     });
 ```
 
 To build more interesting rules you can describe the behaviour by using `followedBy`.
-The second matcher function will have access to the packet of the first match.
-An attached `then` function (at the end) will have access to both packets as well.
+The second matcher function will have access to the object of the first match.
+An attached `then` function (at the end) will have access to both objects as well.
 
 ```
-$.match(function(packet) {
-        //Do some checks here on packet struct
-        return packet.tcp && packet.tcp.dstport==80; //return true on match
-    }).followedBy.match(function(packet,lastpacket){
-        //Do some checks here on packet OR lastpacket struct
-        return packet.http && packet.ip.src==lastpacket.ip.dst; //return true on match
+$.match(function(object) {
+        //Do some checks here on object struct
+        return object.tcp && object.tcp.dstport==80; //return true on match
+    }).followedBy.match(function(object,lastobject){
+        //Do some checks here on object OR lastobject struct
+        return object.http && object.ip.src==lastobject.ip.dst; //return true on match
     })
 ```
 
-In general the callbacks registered with `match` or `then` will get all packets of the previous matches (in the current chain) passed in, starting with the current packet.
+In general the callbacks registered with `match` or `then` will get all objects of the previous matches (in the current chain) passed in, starting with the current object.
 
 ## Matching API
 
@@ -94,7 +177,7 @@ Takes one or multiple subchains and only contains with the following "rules" (`f
 Example:
 ```
 $.oneOf( $.match(f1),
-         $.match(f2).followedBy.match(f2)
+         $.match(f2).followedBy.match(f3)
        ).then(cb)
 ```  
 The final callback `cb` will only be called if either the first matching function `f1` matched, or `f2` matched followed by a object matching `f3`.
@@ -125,6 +208,10 @@ The final callback `cb` will only be called if `f1` matched followed by a object
 
 
 ## Using the FluentAPI to build the matcher function
+
+_TODO: replace packet/lastPacket stuff in this section with something more generic_  
+_Take a look at [pdml2flow] (https://github.com/Enteee/pdml2flow) if you want to use fluentflow with wireshark_
+
 
 Instead of using a callback function in `match` you can also use the fluent API to automatically build a such function.
 
@@ -190,5 +277,3 @@ Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport
 ## Unit tests
 
 ```npm test```
-
-[pdml2flow]: https://github.com/Enteee/pdml2flow

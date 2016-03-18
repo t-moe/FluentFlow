@@ -11,7 +11,18 @@ const MATCHBOX_ENV_HIDDEN_ATTRS = [ 'load' ];
 module.exports = function(rulesRaw, sandbox){
     sandbox = sandbox || {};
     // parse javascript code (check for errors)
-    UglifyJS.parse(rulesRaw);
+    try {
+        UglifyJS.parse(rulesRaw);
+    } catch(e) {
+        console.error("Error while parsing rules");
+        if(e.message && e.line){
+            console.error(e.message + ' at line: ' + e.line);
+        } else {
+            console.error(e);
+        }
+        throw new Error();
+    }
+
     //get a new matchbox environment in a vm
     const vm = new NodeVM({
         require: true,
