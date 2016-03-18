@@ -8,8 +8,9 @@ const UglifyJS = require('uglify-js');
 const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
 const MATCHBOX_ENV_HIDDEN_ATTRS = [ 'load' ];
 
-module.exports = function(rulesRaw, sandbox){
+module.exports = function(rulesRaw, sandbox, modulesNative){
     sandbox = sandbox || {};
+    modulesNative = modulesNative || [];
     // parse javascript code (check for errors)
     try {
         UglifyJS.parse(rulesRaw);
@@ -27,7 +28,7 @@ module.exports = function(rulesRaw, sandbox){
     const vm = new NodeVM({
         require: true,
         requireExternal: true,
-        requireNative: [],
+        requireNative: modulesNative,
         sandbox: sandbox,
     });
     const matchbox = vm.run("module.exports = require('"+ MATCHBOX_ENV +"')", __filename);
