@@ -12,18 +12,7 @@ module.exports = function(rulesRaw, sandbox, modulesNative){
     sandbox = sandbox || {};
     modulesNative = modulesNative || [];
     // parse javascript code (check for errors)
-    try {
-        UglifyJS.parse(rulesRaw);
-    } catch(e) {
-        console.error("Error while parsing rules");
-        if(e.message && e.line){
-            console.error(e.message + ' at line: ' + e.line);
-        } else {
-            console.error(e);
-        }
-        throw new Error();
-    }
-
+    UglifyJS.parse(rulesRaw);
     //get a new matchbox environment in a vm
     const vm = new NodeVM({
         require: true,

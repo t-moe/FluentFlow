@@ -15,7 +15,7 @@ const self = {
         self.rules = eval(self.rulesRaw);
         const builder = new Matcher.Builder()
         if(!(self.rules instanceof Array)){
-            throw new Error('No rules defined');
+            throw new Error('No rules found');
         }
         self.rules.forEach(function(r){
             if(self.rules instanceof Array){
