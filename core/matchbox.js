@@ -5,8 +5,6 @@ const Module = module.constructor;
 const NodeVM = require('vm2').NodeVM;
 const UglifyJS = require('uglify-js');
 
-'use strict';
-
 const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
 const MATCHBOX_ENV_HIDDEN_ATTRS = [ 'load' ];
 
@@ -14,6 +12,7 @@ module.exports = function(rulesRaw, vmoptions){
     vmoptions = vmoptions || {};
     vmoptions.require = true;
     vmoptions.requireExternal = true;
+    vmoptions.requireNative = vmoptions.requireNative || [];
     // parse javascript code (check for errors)
     const vm = new NodeVM(vmoptions);
     if(vmoptions.events){
