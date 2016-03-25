@@ -7,8 +7,12 @@ module.exports =  function() {
 
         var log = function() {
             // Comment/uncomment for debug output
-            // console.log.apply(this,arguments);
+            // console.log.apply(this, arguments);
         };
+        var error = function(){
+            // Comment/uncomment for error output
+            console.error.apply(this, arguments);
+        }
 
         this.addRules = function (rules) {
             if (!(this.rules)) {
@@ -73,7 +77,7 @@ module.exports =  function() {
             };
 
             for (var ruleId in this.rules) { //foreach rule
-                try { 
+                try {
                     var ruleDef = this.rules[ruleId];
                     if (!ruleDef.conditional || ruleDef.params.length > 0) { //Rule must be processed
                         for(var checkerInd=0; checkerInd<ruleDef.checkers.length; checkerInd++) { //foreach checker function
@@ -118,7 +122,7 @@ module.exports =  function() {
                     }
                 } catch (e){
                     // skip this rule
-                    console.error('Error while checking rule: ' + e);
+                    error(e);
                 }
             }
 
@@ -265,7 +269,7 @@ module.exports =  function() {
         };
 
         this.printRules = function() {
-            console.log("Rules ("+this.rules.length+")");
+            log("Rules ("+this.rules.length+")");
             for(var i =0; i<this.rules.length;i++) {
                 var rule = this.rules[i];
                 var str="";
@@ -275,12 +279,12 @@ module.exports =  function() {
                 if(rule.pushTo.length) {
                     str+="pushesTo: "+rule.pushTo.toString()+" ";
                 }
-                console.log("Rule "+i+": "+str+" Checkers ("+rule.checkers.length+"):");
+                log("Rule "+i+": "+str+" Checkers ("+rule.checkers.length+"):");
                 str="";
                 for(var j in rule.checkers) {
                     str+="Checker "+j+": " + rule.checkers[j].toString()
                 }
-                console.log(str);
+                log(str);
             }
         };
 
