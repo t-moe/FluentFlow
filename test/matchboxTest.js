@@ -55,7 +55,6 @@ exports.testMatchboxNoVM = function(test) {
         novm: true, // disable vm
         console: 'off',
     });
-    console.log(matchbox);
     matchbox.matchNext(objs);
     test.done();
 };

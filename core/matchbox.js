@@ -9,6 +9,7 @@ const UglifyJS = require('uglify-js');
 
 const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
 const MATCHBOX_ENV_HIDDEN_PROPERTIES = [ 'load', 'setConsole' ];
+const MATCHBOX_ENV_CONSOLE_EMIT_FUNCIONS = [ 'log', 'error' ];
 
 module.exports = function(rulesRaw, vmoptions){
     vmoptions = vmoptions || {};
@@ -42,6 +43,7 @@ module.exports = function(rulesRaw, vmoptions){
         });
     }else{
         function MatchboxEmitter(){
+            const self = this;
             // make this an event emitter
             EventEmitter.call(this);
             // do not start a vm, instead require directly
@@ -49,20 +51,38 @@ module.exports = function(rulesRaw, vmoptions){
             // and remove from require cache, so that subsequent requires
             // don't result in the same object beeing returned
             delete require.cache[require.resolve(MATCHBOX_ENV)];
+            // register events
+            if(vmoptions.events){
+                const events = vmoptions.events;
+                for (var event in events) {
+                    if (events.hasOwnProperty(event)) {
+                        this.on(event, events[event]);
+                    }
+                }
+            }
             switch(vmoptions.console) {
                 case 'redirect':
                     // set event emitting console
-                    matchbox.setConsole(new Proxy({}, {
-                        apply: function(target, thisArg, argumentsList) {
-                            console.log('emitting');
-                            this.emit('console.' + target, argumentsList);
+                    matchbox.setConsole(new Proxy(console, {
+                        get: function(target, property, receiver) {
+                            if(MATCHBOX_ENV_CONSOLE_EMIT_FUNCIONS.indexOf(property) != -1){
+                                return function(data){
+                                    self.emit('console.' + property, data);
+                                };
+                            }
+                            return target[property];
                         },
                     }));
                 break;
                 case 'off':
                     matchbox.setConsole(new Proxy(console, {
-                        apply: function(target, thisArg, argumentsList) {
-                            // don't do anything
+                        get: function(target, property, receiver) {
+                            if(MATCHBOX_ENV_CONSOLE_EMIT_FUNCIONS.indexOf(property) != -1){
+                                return function(){
+                                    // do nothing
+                                };
+                            }
+                            return target[property];
                         },
                     }));
                 break;

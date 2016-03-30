@@ -8,12 +8,13 @@ const m = new Matcher();
 const objectFluent = Fluent.Object();
 const currentObject = objectFluent.currentObject;
 const lastObject = objectFluent.lastObject;
+// move console to local scope, somehow we can not ovewrite global.console
+// might be node.js related
+var console = global.console;
 
 const self = {
     setConsole: function(newConsole){
-        console.log('replacing console');
         console = newConsole;
-        console.log('replacing console done..');
     },
     load: function(rulesRaw){
         self.rulesRaw = rulesRaw || '';
