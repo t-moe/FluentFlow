@@ -10,6 +10,11 @@ const currentObject = objectFluent.currentObject;
 const lastObject = objectFluent.lastObject;
 
 const self = {
+    setConsole: function(newConsole){
+        console.log('replacing console');
+        console = newConsole;
+        console.log('replacing console done..');
+    },
     load: function(rulesRaw){
         self.rulesRaw = rulesRaw || '';
         self.rules = eval(self.rulesRaw);
