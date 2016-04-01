@@ -169,7 +169,11 @@ exports.testComplexMatch = function(test) {
         2 : new Matcher.Rule(function(object,lastObject) {
             test.equal(arguments.length,2);
             matchArgs.push(Array.prototype.slice.call(arguments));
-            return object.foo==3 && (lastObject.bar==undefined || object.bar ==undefined ||  lastObject.bar+4 == object.bar);
+            var cb= this.next;
+            setTimeout(function(){
+                cb( object.foo==3 && (lastObject.bar==undefined || object.bar ==undefined ||  lastObject.bar+4 == object.bar));
+            },0);
+
         }, function(p,lp) {
             test.equal(arguments.length,2);
             matches[2].push(Array.prototype.slice.call(arguments));

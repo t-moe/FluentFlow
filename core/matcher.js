@@ -2,6 +2,8 @@
  * Created by Timo on 26.02.2016.
  */
 
+var deasync = require("deasync");
+
 module.exports =  function() {
     var obj = function() {
 
@@ -28,6 +30,7 @@ module.exports =  function() {
             log("new object",object);
 
             var pushTo = new Object();
+            var finishedTasks = new Array();
             //var unpushTo = new Object();
 
             var pushObjectTo = function (from, to, params) {
@@ -72,54 +75,149 @@ module.exports =  function() {
                   }*/
             };
 
-            for (var ruleId in this.rules) { //foreach rule
-                try { 
-                    var ruleDef = this.rules[ruleId];
-                    if (!ruleDef.conditional || ruleDef.params.length > 0) { //Rule must be processed
-                        for(var checkerInd=0; checkerInd<ruleDef.checkers.length; checkerInd++) { //foreach checker function
-                            var isLast = (checkerInd == ruleDef.checkers.length-1); //whether this is the last checker function
-                            var checker = ruleDef.checkers[checkerInd];
-                            var caresAboutPrev = (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
-                            if(!caresAboutPrev) { //we only have the current object to pass (no previous in chain) or the checker takes only one argument
-                                if(!checker(object)) { //checker didn't match
-                                    break; //abort here: the remaining checkers will be ignored
-                                } else if(isLast) { //if it matched and this was the last checker: MATCH!
-                                    log("match on rule "+ruleId);
-                                    if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
-                                        afterMatch(ruleDef,[object]); //Call action, apply pushTo and unpushTo
-                                    } else { //Arguments available. Call action once per argument
-                                        while (ruleDef.params.length > 0) {
-                                            var param = ruleDef.params.shift(); //remove first argument and process it
-                                            param.unshift(object); //add object front
-                                            afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
-                                        }
-                                    }
-                                }
-                            } else { //checker cares about previous rules
-                                for(var paramInd=0; paramInd < ruleDef.params.length; paramInd++) { //foreach param
-                                    var param = ruleDef.params[paramInd].slice(); //copy param!
-                                    param.unshift(object); //add object front
+            var checkRule = function(ruleDef,param,ind,param2remove) {
+                var ruleId = ruleDef.id;
+                var checkerInd=ind || 0;
+                var hasParam=(param!=undefined);
+                var asyncMode =false;
+                var asyncInd = 0;
 
-                                    for(var checkerInd2=checkerInd; checkerInd2<ruleDef.checkers.length; checkerInd2++) { //foreach remaining checker function
-                                        isLast = (checkerInd2 == ruleDef.checkers.length-1); //whether this is the last checker function
-                                        checker = ruleDef.checkers[checkerInd2];
-                                        if(!checker.apply(this,param)) { //checker didn't match
-                                            break; //abort here: the remaining checkers will be ignored, next params will be tried
-                                        } else if(isLast) { //if it matched and this was the last checker: MATCH!
-                                            log("match on rule "+ruleId+" with param", param);
-                                            ruleDef.params.splice(paramInd--,1); //remove argument from ruleDef because it matched
-                                            afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
-                                        }
-                                    }
-                                }
-                                break; //don't continue the initial for loop
+                var validateCheck = function(checker,retVal) {
+                    if(typeof(retVal)=="boolean") {
+                        context.next(retVal);
+                    } else if(typeof(retVal)=="undefined") {
+                        if(!asyncMode) {
+                            asyncMode = true;
+                            asyncInd = finishedTasks.length;
+                            finishedTasks.push(false);
+                        }
+                    } else {
+                        log(checker.toString());
+                        throw new Error("Invalid return value of matcher function. must be boolean or undefined (async).");
+                    }
+                };
+
+                var endCheck = function() {
+                    if(hasParam) {
+                        log("match on rule "+ruleId+" with param", param);
+                        ruleDef.params.splice(ruleDef.params.indexOf(param2remove),1); //remove argument from ruleDef because it matched
+                        afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                    } else {
+                        log("match on rule "+ruleId);
+                        if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
+                            afterMatch(ruleDef, [object]);
+                        } else { //Arguments available. Call action once per argument
+                            while (ruleDef.params.length > 0) {
+                                var par = ruleDef.params.shift(); //remove first argument and process it
+                                par.unshift(object); //add object front
+                                afterMatch(ruleDef, par);
                             }
                         }
                     }
-                } catch (e){
-                    // skip this rule
-                    console.error('Error while checking rule: ' + e);
+                    if(asyncMode) {
+                        finishedTasks[asyncInd] =true; //mark rule check task as finished
+                    }
+                };
+
+                var continueCheck = function() {
+                    if(checkerInd == ruleDef.checkers.length) { //was last
+                        endCheck();
+                        return;
+                    }
+                    var checker = ruleDef.checkers[checkerInd++];
+                    hasParam = hasParam || (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
+                    if(!hasParam) {
+                        validateCheck(checker,checker.call(context,object));
+                    } else if(param==undefined) {
+                        var params =  ruleDef.params.slice(); //shadow copy, so that array will not shrink
+                        for (var paramInd = 0; paramInd < params.length; paramInd++) { //foreach param
+                            var par = params[paramInd].slice(); //copy param!
+                            par.unshift(object); //add object front
+                            log("try to match rule "+ruleId+" with args",par);
+                            checkRule(ruleDef, par, checkerInd - 1,params[paramInd]);
+                        }
+                    } else {
+                        validateCheck(checker,checker.apply(context,param));
+                    }
+                };
+
+                var context =  {
+                    "next": function(matched) {
+                        if(matched===true) {
+                            continueCheck();
+                        } else if(matched===false) {
+                            if(asyncMode) {
+                                finishedTasks[asyncInd] =true; //mark rule check task as finished
+                            }
+                        } else {
+                            log(ruleDef.checkers[checkerInd-1].toString());
+                            throw new Error("Invalid argument to next function. must be boolean");
+                        }
+                    }
+                };
+
+                continueCheck();
+
+
+/*
+
+                for(var checkerInd=0; checkerInd<ruleDef.checkers.length; checkerInd++) { //foreach checker function
+                    var isLast = (checkerInd == ruleDef.checkers.length-1); //whether this is the last checker function
+                    var checker = ruleDef.checkers[checkerInd];
+                    var caresAboutPrev = (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
+                    if(!caresAboutPrev) { //we only have the current object to pass (no previous in chain) or the checker takes only one argument
+                        if(!checker(object)) { //checker didn't match
+                            break; //abort here: the remaining checkers will be ignored
+                        } else if(isLast) { //if it matched and this was the last checker: MATCH!
+                            log("match on rule "+ruleId);
+                            if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
+                                afterMatch(ruleDef,[object]); //Call action, apply pushTo and unpushTo
+                            } else { //Arguments available. Call action once per argument
+                                while (ruleDef.params.length > 0) {
+                                    var param = ruleDef.params.shift(); //remove first argument and process it
+                                    param.unshift(object); //add object front
+                                    afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                                }
+                            }
+                        }
+                    } else { //checker cares about previous rules
+                        for(var paramInd=0; paramInd < ruleDef.params.length; paramInd++) { //foreach param
+                            var param = ruleDef.params[paramInd].slice(); //copy param!
+                            param.unshift(object); //add object front
+                            log("try to match rule "+ruleId+" with args",param);
+
+                            for(var checkerInd2=checkerInd; checkerInd2<ruleDef.checkers.length; checkerInd2++) { //foreach remaining checker function
+                                isLast = (checkerInd2 == ruleDef.checkers.length-1); //whether this is the last checker function
+                                checker = ruleDef.checkers[checkerInd2];
+                                if(!checker.apply(this,param)) { //checker didn't match
+                                    break; //abort here: the remaining checkers will be ignored, next params will be tried
+                                } else if(isLast) { //if it matched and this was the last checker: MATCH!
+                                    log("match on rule "+ruleId+" with param", param);
+                                    ruleDef.params.splice(paramInd--,1); //remove argument from ruleDef because it matched
+                                    afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                                }
+                            }
+                        }
+                        break; //don't continue the initial for loop
+                    }
+                };*/
+
+            }
+
+            for (var ruleId in this.rules) { //foreach rule
+                var ruleDef = this.rules[ruleId];
+                if (!ruleDef.conditional || ruleDef.params.length > 0) { //Rule must be processed
+                    checkRule(ruleDef); //check one rule (async)
                 }
+            }
+
+            if(finishedTasks.length) {
+                deasync.loopWhile(function () {
+                    for(var i=0; i<finishedTasks.length; i++) {
+                        if(finishedTasks[i] === false) return true; //continue deasync's loop while as long as one task is not finished
+                    }
+                    return false; //all tasks finished. quit loop.
+                });
             }
 
             for (var toWhere in pushTo) {
