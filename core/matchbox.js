@@ -6,6 +6,7 @@ const UglifyJS = require('uglify-js');
 'use strict';
 
 const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
+
 const MATCHBOX_ENV_HIDDEN_ATTRS = [ 'load' ];
 
 module.exports = function(rulesRaw, sandbox){
@@ -27,10 +28,10 @@ module.exports = function(rulesRaw, sandbox){
     const vm = new NodeVM({
         require: true,
         requireExternal: true,
-        requireNative: [],
+        requireNative: ['fs','path'],
         sandbox: sandbox,
     });
-    const matchbox = vm.run("module.exports = require('"+ MATCHBOX_ENV +"')", __filename);
+    const matchbox = vm.run("module.exports = require("+ JSON.stringify(MATCHBOX_ENV) +")", __filename);
     vm.call(matchbox.load, rulesRaw);
     return new Proxy(matchbox, {
         apply: function(target, thisArg, argumentsList) {
