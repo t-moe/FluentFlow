@@ -169,6 +169,8 @@ If a function takes only one parameter, it will receive the current object as ar
   
 Performance Hint: If you need access to the last Object (by adding a second parameter), add a function  before it (which uses only one parameter) to filter out some of the objects.
 
+A matcher function can also return `undefined` and submit the result async by invoking `this.next` with a boolean.
+
 **Available Members:** _followedBy_, _then_
 
 ### Function: oneOf(chain1, chain2, ..., chain_n)

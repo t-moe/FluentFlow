@@ -324,6 +324,87 @@ exports.testMultiChecker = function(test) {
     test.done();
 };
 
+exports.testAsyncChecker = function(test) {
+
+
+    var pkt = [
+        {bar: 33},
+        {foo: 18},
+        {foo: 1},
+        {foo: 22},
+        {foo: 1, bar:18},
+        {bar: 13}
+    ];
+
+    var ind =0;
+    var ids = [];
+
+    var rule0 =  new Matcher.Rule(function(p) {
+        var cb = this.next;
+        ids.push([10,ind++]);
+        setTimeout(function(){
+            ids.push([11,ind++]);
+            cb(p.foo!=undefined);
+        },1);
+    }, function(p) {
+        ids.push([40,ind++]);
+    } );
+
+    rule0.checkers.push(function(p){
+        ids.push([20,ind++]);
+        return p.foo===1;
+    });
+    rule0.checkers.push(function(p){
+        var cb = this.next;
+        ids.push([30,ind++]);
+        setTimeout(function(){
+            ids.push([31,ind++]);
+            cb(!!p.bar);
+        },1);
+    });
+
+    var matcher = new Matcher();
+    matcher.addRules([rule0]);
+
+    for(var i=0; i<pkt.length; i++) {
+        matcher.matchNext(pkt[i]);
+        ids.push([50,ind++]);
+    }
+
+    test.deepEqual(ids, [
+        [ 10, 0 ], //{bar: 33}
+        [ 11, 1 ],
+        [ 50, 2 ],
+        [ 10, 3 ], //{foo: 18}
+        [ 11, 4 ],
+        [ 20, 5 ],
+        [ 50, 6 ],
+        [ 10, 7 ], //{foo: 1}
+        [ 11, 8 ],
+        [ 20, 9 ],
+        [ 30, 10 ],
+        [ 31, 11 ],
+        [ 50, 12 ],
+        [ 10, 13 ], //{foo: 22}
+        [ 11, 14 ],
+        [ 20, 15 ],
+        [ 50, 16 ],
+        [ 10, 17 ], //{foo: 1, bar:18}
+        [ 11, 18 ],
+        [ 20, 19 ],
+        [ 30, 20 ],
+        [ 31, 21 ],
+        [ 40, 22 ],
+        [ 50, 23 ],
+        [ 10, 24 ], //{bar: 13}
+        [ 11, 25 ],
+        [ 50, 26 ]
+    ]);
+
+
+    test.done();
+};
+
 exports.testSet = function(test) {
 
     {
