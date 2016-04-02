@@ -75,28 +75,19 @@ module.exports =  function() {
                   }*/
             };
 
+            //Function that checks the current object against the passed rule
+            // Function will first be called with only one argument: the rule to check
+            // If one of the checker functions takes multiple parameters, and multiple ruleDef.params are available, the function will then be called for every ruleDef.param.
             var checkRule = function(ruleDef,param,ind,param2remove) {
                 var ruleId = ruleDef.id;
-                var checkerInd=ind || 0;
+                var checkerInd=ind || 0; //index of the next checker function to execute
                 var hasParam=(param!=undefined);
-                var asyncMode =false;
-                var asyncInd = 0;
+                var asyncMode =false; //will be set to true as soon as one checker function returns undefined and starts using the async "next()" callback.
+                var asyncInd = 0; //index of the async task (in the finishedTasks array above)
+                var context =  {}; //context that will be used as "this" object for the checker functions
 
-                var validateCheck = function(checker,retVal) {
-                    if(typeof(retVal)=="boolean") {
-                        context.next(retVal);
-                    } else if(typeof(retVal)=="undefined") {
-                        if(!asyncMode) {
-                            asyncMode = true;
-                            asyncInd = finishedTasks.length;
-                            finishedTasks.push(false);
-                        }
-                    } else {
-                        log(checker.toString());
-                        throw new Error("Invalid return value of matcher function. must be boolean or undefined (async).");
-                    }
-                };
-
+                //Function that will be called when all checker function's returned true
+                // Calls the callbacks and marks the async task's as finished
                 var endCheck = function() {
                     if(hasParam) {
                         log("match on rule "+ruleId+" with param", param);
@@ -119,15 +110,54 @@ module.exports =  function() {
                     }
                 };
 
+                //Function that calls the next checker function and validates it's return value
+                var checkNext = function(checker,args) {
+                    var funcReturned = false; //var that says whether or not the checker function has yet returned (sync OR async !!)
+                    context.next = function(matched) {
+                        if(funcReturned) {
+                            throw new Error("You can not call next() multiple times, or after you function returned a boolean.");
+                        }
+                        funcReturned = true;
+                        if(matched===true) {
+                            continueCheck();
+                        } else if(matched===false) {
+                            if(asyncMode) {
+                                finishedTasks[asyncInd] =true; //mark rule check task as finished
+                            }
+                        } else {
+                            log(ruleDef.checkers[checkerInd-1].toString());
+                            throw new Error("Invalid argument to next() function. must be boolean");
+                        }
+                    };
+
+                    var retVal = checker.apply(context,args);
+                    if(typeof(retVal)=="boolean") {
+                        if(funcReturned) {
+                            throw new Error("You cannot return a boolean, after you called next()");
+                        }
+                        context.next(retVal); //will decide what to do next and set funcReturned=true
+                    } else if(typeof(retVal)=="undefined") {
+                        if(!funcReturned && !asyncMode) {
+                            asyncMode = true;
+                            asyncInd = finishedTasks.length;
+                            finishedTasks.push(false);
+                        }
+                    } else {
+                        log(checker.toString());
+                        throw new Error("Invalid return value of matcher function. must be boolean or undefined (async).");
+                    }
+                };
+
+                //Function that executes the next step of checking of this rule or ends the checking with endCheck()
                 var continueCheck = function() {
-                    if(checkerInd == ruleDef.checkers.length) { //was last
+                    if(checkerInd == ruleDef.checkers.length) { //was last checker
                         endCheck();
                         return;
                     }
-                    var checker = ruleDef.checkers[checkerInd++];
+                    var checker = ruleDef.checkers[checkerInd++]; //get current checker and increment for next round
                     hasParam = hasParam || (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
                     if(!hasParam) {
-                        validateCheck(checker,checker.call(context,object));
+                        checkNext(checker,[object]);
                     } else if(param==undefined) {
                         var params =  ruleDef.params.slice(); //shadow copy, so that array will not shrink
                         for (var paramInd = 0; paramInd < params.length; paramInd++) { //foreach param
@@ -137,72 +167,12 @@ module.exports =  function() {
                             checkRule(ruleDef, par, checkerInd - 1,params[paramInd]);
                         }
                     } else {
-                        validateCheck(checker,checker.apply(context,param));
+                        checkNext(checker,param);
                     }
                 };
 
-                var context =  {
-                    "next": function(matched) {
-                        if(matched===true) {
-                            continueCheck();
-                        } else if(matched===false) {
-                            if(asyncMode) {
-                                finishedTasks[asyncInd] =true; //mark rule check task as finished
-                            }
-                        } else {
-                            log(ruleDef.checkers[checkerInd-1].toString());
-                            throw new Error("Invalid argument to next function. must be boolean");
-                        }
-                    }
-                };
-
-                continueCheck();
-
-
-/*
-
-                for(var checkerInd=0; checkerInd<ruleDef.checkers.length; checkerInd++) { //foreach checker function
-                    var isLast = (checkerInd == ruleDef.checkers.length-1); //whether this is the last checker function
-                    var checker = ruleDef.checkers[checkerInd];
-                    var caresAboutPrev = (checker.length > 1 && ruleDef.params.length > 0); //if the checker takes more than one argument, and we have more than one object to pass
-                    if(!caresAboutPrev) { //we only have the current object to pass (no previous in chain) or the checker takes only one argument
-                        if(!checker(object)) { //checker didn't match
-                            break; //abort here: the remaining checkers will be ignored
-                        } else if(isLast) { //if it matched and this was the last checker: MATCH!
-                            log("match on rule "+ruleId);
-                            if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
-                                afterMatch(ruleDef,[object]); //Call action, apply pushTo and unpushTo
-                            } else { //Arguments available. Call action once per argument
-                                while (ruleDef.params.length > 0) {
-                                    var param = ruleDef.params.shift(); //remove first argument and process it
-                                    param.unshift(object); //add object front
-                                    afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
-                                }
-                            }
-                        }
-                    } else { //checker cares about previous rules
-                        for(var paramInd=0; paramInd < ruleDef.params.length; paramInd++) { //foreach param
-                            var param = ruleDef.params[paramInd].slice(); //copy param!
-                            param.unshift(object); //add object front
-                            log("try to match rule "+ruleId+" with args",param);
-
-                            for(var checkerInd2=checkerInd; checkerInd2<ruleDef.checkers.length; checkerInd2++) { //foreach remaining checker function
-                                isLast = (checkerInd2 == ruleDef.checkers.length-1); //whether this is the last checker function
-                                checker = ruleDef.checkers[checkerInd2];
-                                if(!checker.apply(this,param)) { //checker didn't match
-                                    break; //abort here: the remaining checkers will be ignored, next params will be tried
-                                } else if(isLast) { //if it matched and this was the last checker: MATCH!
-                                    log("match on rule "+ruleId+" with param", param);
-                                    ruleDef.params.splice(paramInd--,1); //remove argument from ruleDef because it matched
-                                    afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
-                                }
-                            }
-                        }
-                        break; //don't continue the initial for loop
-                    }
-                };*/
-
-            }
+                continueCheck(); //Start checking with the first checker
+            };
 
             for (var ruleId in this.rules) { //foreach rule
                 var ruleDef = this.rules[ruleId];
@@ -211,10 +181,10 @@ module.exports =  function() {
                 }
             }
 
-            if(finishedTasks.length) {
+            if(finishedTasks.length) { //Synchronization needed
                 deasync.loopWhile(function () {
                     for(var i=0; i<finishedTasks.length; i++) {
-                        if(finishedTasks[i] === false) return true; //continue deasync's loop while as long as one task is not finished
+                        if(finishedTasks[i] === false) return true; //continue deasync's loopWhile as long as one task is not finished
                     }
                     return false; //all tasks finished. quit loop.
                 });
