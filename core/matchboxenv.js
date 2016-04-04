@@ -8,14 +8,25 @@ const m = new Matcher();
 const objectFluent = Fluent.Object();
 const currentObject = objectFluent.currentObject;
 const lastObject = objectFluent.lastObject;
+// move console to local scope, somehow we can not ovewrite global.console
+// might be node.js related
+var console = global.console;
 
 const self = {
+    setConsole: function(newConsole){
+        console = newConsole;
+    },
     load: function(rulesRaw){
         self.rulesRaw = rulesRaw || '';
         self.rules = eval(self.rulesRaw);
         const builder = new Matcher.Builder()
+        if(!(self.rules instanceof Array)){
+            throw new Error('No rules found');
+        }
         self.rules.forEach(function(r){
-            builder.append(r.end());
+            if(self.rules instanceof Array){
+                builder.append(r.end());
+            }
         });
         m.addRules(builder.rules);
     },

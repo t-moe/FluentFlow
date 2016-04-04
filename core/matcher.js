@@ -12,6 +12,13 @@ module.exports =  function() {
             // console.log.apply(this,arguments);
         };
 
+
+        var error = function(){
+            // Comment/uncomment for error output
+            console.error.apply(this, arguments);
+        }
+
+
         this.addRules = function (rules) {
             if (!(this.rules)) {
                 this.rules = {};
@@ -130,7 +137,14 @@ module.exports =  function() {
                         }
                     };
 
-                    var retVal = checker.apply(context,args);
+                    try {
+                        var retVal = checker.apply(context,args);
+                    } catch(e) {
+                        error(e);
+                        return;
+                    }
+                        
+                        
                     if(typeof(retVal)=="boolean") {
                         if(funcReturned) {
                             throw new Error("You cannot return a boolean, after you called next()");
@@ -333,7 +347,7 @@ module.exports =  function() {
         };
 
         this.printRules = function() {
-            console.log("Rules ("+this.rules.length+")");
+            log("Rules ("+this.rules.length+")");
             for(var i =0; i<this.rules.length;i++) {
                 var rule = this.rules[i];
                 var str="";
@@ -348,7 +362,7 @@ module.exports =  function() {
                 for(var j in rule.checkers) {
                     str+="Checker "+j+": " + rule.checkers[j].toString()
                 }
-                console.log(str);
+                log(str);
             }
         };
 

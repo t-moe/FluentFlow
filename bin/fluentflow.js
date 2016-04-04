@@ -51,8 +51,6 @@ if(argv.j){
     jsonPath = argv.j;
 }
 
-
-
 try{
     const matchbox = new Matchbox(rulesRaw);
 } catch(e) {
