@@ -1,6 +1,8 @@
 # FluentFlow
 FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.
 
+[![Travis](https://img.shields.io/travis/t-moe/FluentFlow.svg)](https://travis-ci.org/t-moe/FluentFlow)
+
 ## FluentFlow as Command Line Tool
 
 ### Installation
