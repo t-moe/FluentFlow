@@ -5,20 +5,18 @@
 var deasync = require("deasync");
 
 module.exports =  function() {
+
+    var log = function() {
+        // Comment/uncomment for debug output
+        // console.log.apply(this,arguments);
+    };
+
+    var error = function(){
+        // Comment/uncomment for error output
+        console.error.apply(this, arguments);
+    };
+
     var obj = function() {
-
-        var log = function() {
-            // Comment/uncomment for debug output
-            // console.log.apply(this,arguments);
-        };
-
-
-        var error = function(){
-            // Comment/uncomment for error output
-            console.error.apply(this, arguments);
-        }
-
-
         this.addRules = function (rules) {
             if (!(this.rules)) {
                 this.rules = {};
@@ -38,7 +36,6 @@ module.exports =  function() {
 
             var pushTo = new Object();
             var finishedTasks = new Array();
-            //var unpushTo = new Object();
 
             var pushObjectTo = function (from, to, params) {
                 log("request push from "+ from +" to "+to +" params ",params);
@@ -54,61 +51,68 @@ module.exports =  function() {
                 }
             };
 
-            /*var unpushObjectTo = function (from, to) {
-              if (unpushTo[to]) {
-              unpushTo[to][from] = true;
-              } else {
-              unpushTo[to] = {from: true};
-              }
-              };*/
-
-            var afterMatch = function(ruleDef, params) {
-                var ruleId = ruleDef.id;
-                var copy = params.slice(); //make one copy for all action handlers
-                for(var i in ruleDef.actions) { //foreach action handler
-                    ruleDef.actions[i].apply(this,copy);
-                }
-                if (ruleDef.pushTo.length > 0) {
-                    for (var k in ruleDef.pushTo) {
-                        var toWhere = ruleDef.pushTo[k];
-                        pushObjectTo(ruleId, toWhere, params.slice()); //make one copy per ruleDef
-                    }
-                }
-                /*if (ruleDef.unpushFromTo.length > 0) {
-                  for (var k in ruleDef.unpushFromTo) {
-                  var entry = ruleDef.unpushFromTo[k];
-                  unpushObjectTo(entry.from, entry.to);
-                  }
-                  }*/
-            };
-
             //Function that checks the current object against the passed rule
             // Function will first be called with only one argument: the rule to check
             // If one of the checker functions takes multiple parameters, and multiple ruleDef.params are available, the function will then be called for every ruleDef.param.
-            var checkRule = function(ruleDef,param,ind,param2remove) {
+            var checkRule = function(ruleDef,param,ind,param2remove,cleanCurrent) {
                 var ruleId = ruleDef.id;
                 var checkerInd=ind || 0; //index of the next checker function to execute
                 var hasParam=(param!=undefined);
                 var asyncMode =false; //will be set to true as soon as one checker function returns undefined and starts using the async "next()" callback.
                 var asyncInd = 0; //index of the async task (in the finishedTasks array above)
-                var context =  {}; //context that will be used as "this" object for the checker functions
+
+                var context =  { //context that will be used as "this" object for the checker functions
+                    "queue" : ruleDef.params, //All currently queued params. Can be modified by checkers and actions.
+                    "current" :  param2remove || null, //The object in queue which is related to the current check action.
+                    "cleanCurrent": cleanCurrent || ruleDef.autoCleanQueue //Whether or not "current" will be removed from "queue" after the rule matched and all actions have been executed
+                };
+
+                //Function that calls all callbacks of a ruleDef and pushes objects into following queues
+                var afterMatch = function(params) {
+                    var copy = params.slice(); //make one copy for all action handlers
+                    for(var i in ruleDef.actions) { //foreach action handler
+                        ruleDef.actions[i].apply(context,copy);
+                    }
+                    if (ruleDef.pushTo.length > 0) {
+                        for (var k in ruleDef.pushTo) {
+                            var toWhere = ruleDef.pushTo[k];
+                            pushObjectTo(ruleId, toWhere, params.slice()); //make one copy per ruleDef
+                        }
+                    }
+                };
 
                 //Function that will be called when all checker function's returned true
                 // Calls the callbacks and marks the async task's as finished
                 var endCheck = function() {
                     if(hasParam) {
                         log("match on rule "+ruleId+" with param", param);
-                        ruleDef.params.splice(ruleDef.params.indexOf(param2remove),1); //remove argument from ruleDef because it matched
-                        afterMatch(ruleDef,param); //Call action, apply pushTo and unpushTo
+                        afterMatch(param); //Call action, apply pushTo and unpushTo
+                        if(context.cleanCurrent) { //param must be removed
+                            var i = ruleDef.params.indexOf(param2remove);
+                            if(i>=0) { //param has not been removed by checker/action yet
+                                ruleDef.params.splice(i, 1); //remove argument from ruleDef because it matched
+                            }
+                        }
                     } else {
                         log("match on rule "+ruleId);
-                        if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once
-                            afterMatch(ruleDef, [object]);
+                        if (ruleDef.params.length == 0) { //No "Arguments" available. Call action only once. No cleaning afterwards
+                            afterMatch([object]);
                         } else { //Arguments available. Call action once per argument
-                            while (ruleDef.params.length > 0) {
-                                var par = ruleDef.params.shift(); //remove first argument and process it
+                            var prevCleanCurrent = context.cleanCurrent;
+                            var copy = ruleDef.params.slice();
+                            while(copy.length>0) {
+                                var par2remove = copy.shift(); //remove first element
+                                context.cleanCurrent = prevCleanCurrent;
+                                context.current = par2remove;
+                                var par = par2remove.slice(); //make a copy of it
                                 par.unshift(object); //add object front
-                                afterMatch(ruleDef, par);
+                                afterMatch(par);
+                                if(context.cleanCurrent) {
+                                    var i = ruleDef.params.indexOf(par2remove);
+                                    if(i>=0) { //param has not been removed by checker/action yet
+                                        ruleDef.params.splice(i, 1); //remove argument from ruleDef because it matched
+                                    }
+                                }
                             }
                         }
                     }
@@ -178,7 +182,7 @@ module.exports =  function() {
                             var par = params[paramInd].slice(); //copy param!
                             par.unshift(object); //add object front
                             log("try to match rule "+ruleId+" with args",par);
-                            checkRule(ruleDef, par, checkerInd - 1,params[paramInd]);
+                            checkRule(ruleDef, par, checkerInd - 1,params[paramInd], context.cleanCurrent);
                         }
                     } else {
                         checkNext(checker,param);
@@ -206,9 +210,7 @@ module.exports =  function() {
 
             for (var toWhere in pushTo) {
                 var pushFrom = pushTo[toWhere];
-                // var unpushFrom = unpushTo[toWhere];
                 for (var fromWhere in pushFrom) {
-                    //if (unpushFrom && unpushFrom[fromWhere] === true) continue;
                     var params = pushFrom[fromWhere];
                     log("before pushing from "+fromWhere+" to "+toWhere,params);
                     for (var ind in params)
@@ -223,11 +225,11 @@ module.exports =  function() {
     obj.Rule = function(rule,action) {
         this.id = null; //The id of the rule (will be autofilled after calling addRules())
         this.conditional = false; //if set to true the rule will only be executed if there are params available
+        this.autoCleanQueue = true; //if set to true the queue will be cleared of all elements that matched the rule.
         this.params = new Array(); //params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
         this.checkers = rule?[rule]:[]; //rule check functions. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
         this.actions=action?[action]:[]; //action handler functions which will be called on match. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
         this.pushTo = new Array(); //ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
-        //this.unpushFromTo = new Object(); //pushes to undo. an entry must be an object with the properties from, to (both id's).
     };
 
     obj.Set = function() {
@@ -357,7 +359,7 @@ module.exports =  function() {
                 if(rule.pushTo.length) {
                     str+="pushesTo: "+rule.pushTo.toString()+" ";
                 }
-                console.log("Rule "+i+": "+str+" Checkers ("+rule.checkers.length+"):");
+                log("Rule "+i+": "+str+" Checkers ("+rule.checkers.length+"):");
                 str="";
                 for(var j in rule.checkers) {
                     str+="Checker "+j+": " + rule.checkers[j].toString()
