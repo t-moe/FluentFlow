@@ -1,4 +1,6 @@
-var Matcher = require('../core/matcher.js');
+
+var CorePath = process.env.GPXPARSE_COV ? 'core-cov' : 'core';
+var Matcher = require('../' + CorePath + '/matcher.js');
 
 exports.testMatches = function (test) {
   var pkt = [

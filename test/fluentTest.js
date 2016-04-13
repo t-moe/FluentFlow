@@ -1,8 +1,9 @@
 /**
  * Created by Timo on 27.02.2016.
  */
-var Fluent = require('../core/fluent.js');
-var Matcher = require('../core/matcher.js');
+var CorePath = process.env.GPXPARSE_COV ? 'core-cov' : 'core';
+var Fluent = require('../' + CorePath + '/fluent.js');
+var Matcher = require('../' + CorePath + '/matcher.js');
 var $ = Fluent.Matcher().starter;
 
 exports.testFluentOneStep = function (test) {

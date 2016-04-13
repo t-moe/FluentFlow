@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "scripts": {
     "test": "node_modules/semistandard/bin/cmd.js && node --harmony-proxies node_modules/nodeunit/bin/nodeunit",
-    "format": "node_modules/semistandard/bin/cmd.js -F || true"
+    "format": "node_modules/semistandard/bin/cmd.js -F || true",
+    "coverage": "node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov",
+    "coveralls": "node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov | node_modules/coveralls/bin/coveralls.js"
   },
   "dependencies": {
     "JSONStream": "^1.1.1",
@@ -18,9 +20,11 @@
     "vm2": "^2.0.0"
   },
   "devDependencies": {
+    "coveralls": "^2.11.9",
+    "jscoverage": "^0.6.0",
+    "nodeunit": "^0.9.1",
     "semistandard": "^7.0.5",
-    "semistandard-format": "^2.1.0",
-    "nodeunit": "^0.9.1"
+    "semistandard-format": "^2.1.0"
   },
   "license": "GPL-3.0",
   "description": "FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.",
@@ -49,7 +53,7 @@
   "homepage": "https://github.com/t-moe/FluentFlow#readme",
   "semistandard": {
     "ignore": [
-    	"test/meta/stringRules_fail.js"
+      "test/meta/stringRules_fail.js"
     ]
-  } 
+  }
 }
