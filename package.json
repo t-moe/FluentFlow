@@ -3,7 +3,8 @@
   "main": "modules.js",
   "version": "0.1.0",
   "scripts": {
-    "test": "node --harmony-proxies node_modules/nodeunit/bin/nodeunit"
+    "test": "node_modules/semistandard/bin/cmd.js && node --harmony-proxies node_modules/nodeunit/bin/nodeunit",
+    "format": "node_modules/semistandard/bin/cmd.js -F || true"
   },
   "dependencies": {
     "JSONStream": "^1.1.1",
@@ -17,6 +18,8 @@
     "vm2": "^2.0.0"
   },
   "devDependencies": {
+    "semistandard": "^7.0.5",
+    "semistandard-format": "^2.1.0",
     "nodeunit": "^0.9.1"
   },
   "license": "GPL-3.0",
@@ -43,5 +46,10 @@
   "bugs": {
     "url": "https://github.com/t-moe/FluentFlow/issues"
   },
-  "homepage": "https://github.com/t-moe/FluentFlow#readme"
+  "homepage": "https://github.com/t-moe/FluentFlow#readme",
+  "semistandard": {
+    "ignore": [
+    	"test/meta/stringRules_fail.js"
+    ]
+  } 
 }

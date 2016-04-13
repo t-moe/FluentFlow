@@ -1,3 +1,5 @@
+/* global $ */
+
 [
     //----- Rule 1: A matcher function on a single object ---------------------
     $.match(function(obj) {
