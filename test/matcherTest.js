@@ -233,79 +233,79 @@ exports.testComplexMatch = function (test) {
   test.done();
 };
 
-exports.testMultiChecker = function (test) {
+exports.testMultiChecker2 = function (test) {
   var pkt = [
-    {bar: 33},
-    {foo: 18},
+    {foo: 33},
+    {syscall: 88, id: 43},
     {foo: 1},
-    {foo: 22},
-    {foo: 3, bar: 3},
-    {foo: 2},
-    {bar: 1},
-    {bar: 7, foo: 3},
-    {bar: 13},
-    {bar: 88}
+    {spawn: 22, owner: 43},
+    {syscall: 91, id: 18},
+    {spawn: 12, owner: 43},
+    {spawn: 33, owner: 18},
+    {spawn: 13, owner: 43},
+    {spawn: 17, owner: 18},
+    {spawn: 33, owner: 18},
+    {syscall: 91, id: 20},
+    {spawn: 813, owner: 43},
+    {spawn: 1, owner: 20},
+    {spawn: 13, owner: 20},
+    {spawn: 87, owner: 18}
   ];
 
-  var objs = {0: [], 1: [], 2: [], 3: [], 4: []};
+  var objs = [];
 
   var rule0 = new Matcher.Rule(function (p) {
-    test.equal(arguments.length, 1);
-    objs[0].push(p);
-    return p.foo !== undefined;
-  }, function (p) {
-    test.equal(arguments.length, 1);
-    objs[2].push(p);
+    return !!p.syscall && p.syscall === 91;
   });
 
-  rule0.checkers.push(function (p) {
-    test.equal(arguments.length, 1);
-    objs[1].push(p);
-    return p.foo === 1;
+  var rule1 = new Matcher.Rule(function (p) {
+    return !!p.spawn && !!p.owner;
   });
+  rule1.checkers.push(function (p, lp) {
+    return p.owner === lp.id;
+  });
+
+  rule1.actions.push(function (p, lp) {
+    objs.push([p, lp]);
+  });
+
+  rule1.conditional = true;
   rule0.pushTo.push(1);
 
-  var rules = {
-    0: rule0,
-    1: new Matcher.Rule(function (p, lp) {
-      test.equal(arguments.length, 2);
-      objs[3].push(Array.prototype.slice.call(arguments));
-      return p.bar !== undefined;
-    }, function (p, lp) {
-      test.equal(arguments.length, 2);
-      objs[4].push(Array.prototype.slice.call(arguments));
-    })
-  };
-  rules[1].conditional = true;
-
   var matcher = new Matcher();
-  matcher.addRules(rules);
-
-  test.deepEqual(matcher.rules, rules);
+  matcher.addRules({ 0: rule0, 1: rule1 });
 
   for (var i = 0; i < pkt.length; i++) {
     matcher.matchNext(pkt[i]);
   }
 
-  test.deepEqual(objs[0], pkt);
-  test.deepEqual(objs[1], [
-    {foo: 18},
-    {foo: 1},
-    {foo: 22},
-    {foo: 3, bar: 3},
-    {foo: 2},
-    {bar: 7, foo: 3}
-  ]);
-  test.deepEqual(objs[2], [
-    {foo: 1}
-  ]);
-  test.deepEqual(objs[3], [
-    [ {foo: 22}, {foo: 1} ],
-    [ {foo: 3, bar: 3}, {foo: 1} ]
+  test.deepEqual(objs, [
+    [{ spawn: 33, owner: 18 }, { syscall: 91, id: 18 }],
+    [{ spawn: 1, owner: 20 }, { syscall: 91, id: 20 }]
   ]);
 
-  test.deepEqual(objs[4], [
-    [ {foo: 3, bar: 3}, {foo: 1} ]
+  // Now we modify the checker function so that the queue is not automatically cleared. The rest stays the same.
+
+  rule1.checkers[1] = function (p, lp) {
+    this.cleanCurrent = false; // this line is missing in the test above
+    return p.owner === lp.id;
+  };
+
+  objs = [];
+
+  for (var j = 0; j < pkt.length; j++) {
+    matcher.matchNext(pkt[j]);
+  }
+
+  console.log(objs);
+
+  test.deepEqual(objs, [
+    [ { spawn: 33, owner: 18 }, { syscall: 91, id: 18 } ],
+    [ { spawn: 17, owner: 18 }, { syscall: 91, id: 18 } ],
+    [ { spawn: 33, owner: 18 }, { syscall: 91, id: 18 } ],
+    [ { spawn: 1, owner: 20 }, { syscall: 91, id: 20 } ],
+    [ { spawn: 13, owner: 20 }, { syscall: 91, id: 20 } ],
+    [ { spawn: 87, owner: 18 }, { syscall: 91, id: 18 } ]
   ]);
 
   test.done();

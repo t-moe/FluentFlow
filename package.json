@@ -3,10 +3,10 @@
   "main": "modules.js",
   "version": "0.1.0",
   "scripts": {
-    "test": "node_modules/semistandard/bin/cmd.js && node --harmony-proxies node_modules/nodeunit/bin/nodeunit",
-    "format": "node_modules/semistandard/bin/cmd.js -F || true",
-    "coverage": "node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov",
-    "coveralls": "node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov | node_modules/coveralls/bin/coveralls.js"
+    "test": "node node_modules/semistandard/bin/cmd.js && node --harmony-proxies node_modules/nodeunit/bin/nodeunit",
+    "format": "node node_modules/semistandard/bin/cmd.js -F || true",
+    "coverage": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov",
+    "coveralls": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov | node node_modules/coveralls/bin/coveralls.js"
   },
   "dependencies": {
     "JSONStream": "^1.1.1",
