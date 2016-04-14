@@ -233,6 +233,84 @@ exports.testComplexMatch = function (test) {
   test.done();
 };
 
+exports.testMultiChecker = function (test) {
+  var pkt = [
+    {bar: 33},
+    {foo: 18},
+    {foo: 1},
+    {foo: 22},
+    {foo: 3, bar: 3},
+    {foo: 2},
+    {bar: 1},
+    {bar: 7, foo: 3},
+    {bar: 13},
+    {bar: 88}
+  ];
+
+  var objs = {0: [], 1: [], 2: [], 3: [], 4: []};
+
+  var rule0 = new Matcher.Rule(function (p) {
+    test.equal(arguments.length, 1);
+    objs[0].push(p);
+    return p.foo !== undefined;
+  }, function (p) {
+    test.equal(arguments.length, 1);
+    objs[2].push(p);
+  });
+
+  rule0.checkers.push(function (p) {
+    test.equal(arguments.length, 1);
+    objs[1].push(p);
+    return p.foo === 1;
+  });
+  rule0.pushTo.push(1);
+
+  var rules = {
+    0: rule0,
+    1: new Matcher.Rule(function (p, lp) {
+      test.equal(arguments.length, 2);
+      objs[3].push(Array.prototype.slice.call(arguments));
+      return p.bar !== undefined;
+    }, function (p, lp) {
+      test.equal(arguments.length, 2);
+      objs[4].push(Array.prototype.slice.call(arguments));
+    })
+  };
+  rules[1].conditional = true;
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  test.deepEqual(matcher.rules, rules);
+
+  for (var i = 0; i < pkt.length; i++) {
+    matcher.matchNext(pkt[i]);
+  }
+
+  test.deepEqual(objs[0], pkt);
+  test.deepEqual(objs[1], [
+    {foo: 18},
+    {foo: 1},
+    {foo: 22},
+    {foo: 3, bar: 3},
+    {foo: 2},
+    {bar: 7, foo: 3}
+  ]);
+  test.deepEqual(objs[2], [
+    {foo: 1}
+  ]);
+  test.deepEqual(objs[3], [
+    [ {foo: 22}, {foo: 1} ],
+    [ {foo: 3, bar: 3}, {foo: 1} ]
+  ]);
+
+  test.deepEqual(objs[4], [
+    [ {foo: 3, bar: 3}, {foo: 1} ]
+  ]);
+
+  test.done();
+};
+
 exports.testMultiChecker2 = function (test) {
   var pkt = [
     {foo: 33},
