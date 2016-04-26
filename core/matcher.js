@@ -31,16 +31,17 @@ module.exports = (function () {
     };
 
     var isMatching = false;
-    this.matchNext = function (object) {
-      if(isMatching) {
-        throw new Error("You cannot call matchNext while the previous call has not returned");
+    this.matchNext = function (object, cb) {
+      if (cb !== undefined && typeof (cb) !== 'function') {
+        throw new Error('Second argument must be a function (optional)');
+      }
+      if (isMatching) {
+        throw new Error('You cannot call matchNext while the previous call has not returned');
       }
       isMatching = true;
       log('new object', object);
 
       var pushTo = { };
-      var asyncTasksRunning = 0;
-
       var pushObjectTo = function (from, to, params) {
         log('request push from ' + from + ' to ' + to + ' params ', params);
         if (pushTo[to]) {
@@ -52,6 +53,35 @@ module.exports = (function () {
         } else {
           pushTo[to] = {};
           pushTo[to][from] = [params];
+        }
+      };
+
+      var asyncTasksStarted = 0;
+      var asyncTasksRunning = 0;
+      var self = this;
+      var asyncDone = function () {
+        if (asyncTasksStarted > 0) {
+          if (asyncTasksRunning === 0) {
+            throw new Error('AsyncDone called too many times');
+          }
+          asyncTasksRunning--;
+        }
+
+        if (asyncTasksRunning === 0) {
+          for (var toWhere in pushTo) {
+            var pushFrom = pushTo[toWhere];
+            for (var fromWhere in pushFrom) {
+              var params = pushFrom[fromWhere];
+              log('before pushing from ' + fromWhere + ' to ' + toWhere, params);
+              for (var ind in params)
+                self.rules[toWhere].params.push(params[ind]);
+              log('after pushing from ' + fromWhere + ' to ' + toWhere, params);
+            }
+          }
+          isMatching = false;
+          if (cb !== undefined) {
+            cb();
+          }
         }
       };
 
@@ -120,7 +150,7 @@ module.exports = (function () {
             }
           }
           if (asyncMode) {
-            asyncTasksRunning--; // mark rule check task as finished
+            asyncDone(); // mark rule check task as finished
           }
         };
 
@@ -136,7 +166,7 @@ module.exports = (function () {
               continueCheck();
             } else if (matched === false) {
               if (asyncMode) {
-                asyncTasksRunning--; // mark rule check task as finished
+                asyncDone(); // mark rule check task as finished
               }
             } else {
               log(ruleDef.checkers[checkerInd - 1].toString());
@@ -159,6 +189,7 @@ module.exports = (function () {
           } else if (typeof (retVal) === 'undefined') {
             if (!funcReturned && !asyncMode) {
               asyncMode = true;
+              asyncTasksStarted++;
               asyncTasksRunning++;
             }
           } else {
@@ -200,23 +231,13 @@ module.exports = (function () {
         }
       }
 
-      if (asyncTasksRunning>0) { // Synchronization needed
+      if (asyncTasksStarted === 0) { // No Async tasks ever started
+        asyncDone();
+      } else if (isMatching && cb === undefined) { // Async tasks running and no callback specified
         deasync.loopWhile(function () {
-          return asyncTasksRunning>0; // continue deasync's loopWhile as long as one task is not finished
+          return isMatching; // continue deasync's loopWhile as long as async tasks are runnning
         });
       }
-
-      for (var toWhere in pushTo) {
-        var pushFrom = pushTo[toWhere];
-        for (var fromWhere in pushFrom) {
-          var params = pushFrom[fromWhere];
-          log('before pushing from ' + fromWhere + ' to ' + toWhere, params);
-          for (var ind in params)
-            this.rules[toWhere].params.push(params[ind]);
-          log('after pushing from ' + fromWhere + ' to ' + toWhere, params);
-        }
-      }
-      isMatching = false;
     };
   };
 
