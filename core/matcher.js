@@ -30,11 +30,16 @@ module.exports = (function () {
       this.rules = [];
     };
 
+    var isMatching = false;
     this.matchNext = function (object) {
+      if(isMatching) {
+        throw new Error("You cannot call matchNext while the previous call has not returned");
+      }
+      isMatching = true;
       log('new object', object);
 
       var pushTo = { };
-      var finishedTasks = [];
+      var asyncTasksRunning = 0;
 
       var pushObjectTo = function (from, to, params) {
         log('request push from ' + from + ' to ' + to + ' params ', params);
@@ -58,7 +63,6 @@ module.exports = (function () {
         var checkerInd = ind || 0; // index of the next checker function to execute
         var hasParam = (param !== undefined);
         var asyncMode = false; // will be set to true as soon as one checker function returns undefined and starts using the async "next()" callback.
-        var asyncInd = 0; // index of the async task (in the finishedTasks array above)
 
         var context = { // context that will be used as "this" object for the checker functions
           'queue': ruleDef.params, // All currently queued params. Can be modified by checkers and actions.
@@ -116,7 +120,7 @@ module.exports = (function () {
             }
           }
           if (asyncMode) {
-            finishedTasks[asyncInd] = true; // mark rule check task as finished
+            asyncTasksRunning--; // mark rule check task as finished
           }
         };
 
@@ -132,7 +136,7 @@ module.exports = (function () {
               continueCheck();
             } else if (matched === false) {
               if (asyncMode) {
-                finishedTasks[asyncInd] = true; // mark rule check task as finished
+                asyncTasksRunning--; // mark rule check task as finished
               }
             } else {
               log(ruleDef.checkers[checkerInd - 1].toString());
@@ -155,8 +159,7 @@ module.exports = (function () {
           } else if (typeof (retVal) === 'undefined') {
             if (!funcReturned && !asyncMode) {
               asyncMode = true;
-              asyncInd = finishedTasks.length;
-              finishedTasks.push(false);
+              asyncTasksRunning++;
             }
           } else {
             log(checker.toString());
@@ -197,12 +200,9 @@ module.exports = (function () {
         }
       }
 
-      if (finishedTasks.length) { // Synchronization needed
+      if (asyncTasksRunning>0) { // Synchronization needed
         deasync.loopWhile(function () {
-          for (var i = 0; i < finishedTasks.length; i++) {
-            if (finishedTasks[i] === false) return true; // continue deasync's loopWhile as long as one task is not finished
-          }
-          return false; // all tasks finished. quit loop.
+          return asyncTasksRunning>0; // continue deasync's loopWhile as long as one task is not finished
         });
       }
 
@@ -216,6 +216,7 @@ module.exports = (function () {
           log('after pushing from ' + fromWhere + ' to ' + toWhere, params);
         }
       }
+      isMatching = false;
     };
   };
 
