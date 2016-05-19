@@ -14,7 +14,7 @@ $ sudo npm install -g fluentflow
 ```
 
 ### Usage
-```shell
+```
 Usage: fluentflow.js [OPTIONS] rulesFile
 
 rulesFile          : path to the rules file
@@ -50,8 +50,8 @@ $ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | fluentflow rule
 ## Library
 
 ### Installation
-First add fluentflow to your project
-```
+Add fluentflow to your project
+```shell
 $ npm install --save fluentflow 
 ```
 
