@@ -250,16 +250,16 @@ printy("packet.fieldNamed(\"tcp.dstport\").equals(80)");
 
 | FluentApi | Javascript |
 | --------- | ---------- |
-| `javascript packet.fieldNamed("tcp.dstport").equals(80) ` | `javascript function (packet){return (parseInt(packet.tcp.dstport)==80);}` |
-| `javascript packet.fieldNamed("tcp.dstport").exists.and.equals(80)` | `function (packet){return (packet && packet.tcp&& typeof(packet.tcp.dstport) != "undefined")&&(parseInt(packet.tcp.dstport)==80);}` |
-| `javascript packet.fieldNamed("tcp.dstport").equals(80).or.equals(443)` | `javascript function (packet){return (parseInt(packet.tcp.dstport)==80)||(parseInt(packet.tcp.dstport)==443);}` |
-| `javascript packet.fieldNamed("tcp.dstport").equals(lastPacket)` | `javascript function (packet,lastpacket){return (packet.tcp.dstport==lastpacket.tcp.dstport);}` |
-| `javascript packet.fieldNamed("udp.src").exists.and.equals(lastPacket.fieldNamed("tcp.src"))` | `javascript function (packet,lastpacket){return (packet && packet.udp&& typeof(packet.udp.src) != "undefined")&&(packet.udp.src==lastpacket.tcp.src);}` |
+| `packet.fieldNamed("tcp.dstport").equals(80)` | `function (packet){return (parseInt(packet.tcp.dstport)==80);}` |
+| `packet.fieldNamed("tcp.dstport").exists.and.equals(80)` | `function (packet){return (packet && packet.tcp&& typeof(packet.tcp.dstport) != "undefined")&&(parseInt(packet.tcp.dstport)==80);}` |
+| `packet.fieldNamed("tcp.dstport").equals(80).or.equals(443)` | `function (packet){return (parseInt(packet.tcp.dstport)==80)||(parseInt(packet.tcp.dstport)==443);}` |
+| `packet.fieldNamed("tcp.dstport").equals(lastPacket)` | `function (packet,lastpacket){return (packet.tcp.dstport==lastpacket.tcp.dstport);}` |
+| `packet.fieldNamed("udp.src").exists.and.equals(lastPacket.fieldNamed("tcp.src"))` | `function (packet,lastpacket){return (packet && packet.udp&& typeof(packet.udp.src) != "undefined")&&(packet.udp.src==lastpacket.tcp.src);}` |
 | `packet.fieldNamed("tcp.dstport").not.equals(lastPacket).or.equals(0)` | `function (packet,lastpacket){return !(packet.tcp.dstport==lastpacket.tcp.dstport)||(parseInt(packet.tcp.dstport)==0);}` |
-| `javascript packet.fieldNamed("tcp.dstport").between(0,1024)` | `function (packet){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<1024);}` |
-| `javascript packet.fieldNamed("tcp.dstport").between(0,lastPacket)` | `function (packet,lastpacket){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<parseInt(lastpacket.tcp.dstport));}` |
-| `javascript packet.fieldNamed("http.host").contains("foo")` | `function (packet){return (packet.http.host.indexOf("foo")>=0);}` |
-| `javascript packet.fieldNamed("http.host").not.matches(/abc\d+/).and.matches(/.*\.ch/)` | `function (packet){return !(/abc\d+/.test(packet.http.host))&&(/.*\.ch/.test(packet.http.host));}` |
+| `packet.fieldNamed("tcp.dstport").between(0,1024)` | `function (packet){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<1024);}` |
+| `packet.fieldNamed("tcp.dstport").between(0,lastPacket)` | `function (packet,lastpacket){return (parseInt(packet.tcp.dstport)>0&&parseInt(packet.tcp.dstport)<parseInt(lastpacket.tcp.dstport));}` |
+| `packet.fieldNamed("http.host").contains("foo")` | `function (packet){return (packet.http.host.indexOf("foo")>=0);}` |
+| `packet.fieldNamed("http.host").not.matches(/abc\d+/).and.matches(/.*\.ch/)` | `function (packet){return !(/abc\d+/.test(packet.http.host))&&(/.*\.ch/.test(packet.http.host));}` |
 
   
 Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport`. This only works for properties which have been registered (TODO: explain).
