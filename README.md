@@ -5,17 +5,16 @@ FluentFlow is matching engine which lets you easily define 'followed by'-relatio
 [![Coverage Status](https://coveralls.io/repos/github/t-moe/FluentFlow/badge.svg)](https://coveralls.io/github/t-moe/FluentFlow)
 [![Codacy Badge](https://api.codacy.com/project/badge/grade/72b447b11ed140198b1d549680880e13)](https://www.codacy.com/app/timolang/FluentFlow)
 
-## FluentFlow as Command Line Tool
+## Command line interface
 
 ### Installation
-First install fluent flow globally
-```
+Install fluent flow globally
+```shell
 $ sudo npm install -g fluentflow 
 ```
 
 ### Usage
-
-```
+```shell
 Usage: fluentflow.js [OPTIONS] rulesFile
 
 rulesFile          : path to the rules file
@@ -43,12 +42,12 @@ Configure rules.js:
 ```
 
 Start FluentFlow:
-```
+```shell
 $ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | fluentflow rules.js -j '*'
 ```
   * Note: -j '*' because github responds with an array of json objects which we should split before processing
 
-## FluentFlow as a Library
+## Library
 
 ### Installation
 First add fluentflow to your project
@@ -58,19 +57,83 @@ $ npm install --save fluentflow
 
 ### Usage
 
-Use it in sandboxed mode:
+```javascript
+const FluentFlow = require("fluentflow");
+const Fluent = FluentFlow.Fluent;
+const $ = Fluent.Matcher().starter;
+
+// Build the rules
+const builder = new FluentFlow.Matcher.Builder();
+builder.append(
+    $.match(function(obj){return obj.bar===5;}).then(console.log).end(),
+    $.match(function(obj){return !!obj.fooo;}).then(console.log).end()
+);
+
+// Add rules to matcher
+const matcher = new FluentFlow.Matcher();
+matcher.addRules(builder.rules);
+
+// Match objects
+const objects = [
+    {"bar":2},
+    {"bar":5},
+    {"bar":7},
+    {"fooo":42}
+];
+
+objects.forEach(function(obj) {
+    matcher.matchNext(obj);
+});
 ```
-const Matchbox = require("fluentflow").Matchbox;
 
-const rules = require("fs").readFileSync("rules.js", {encoding: 'utf-8'});
-//const rules = "[$.match(....).then(), $.match(...).followedBy.match(...)]";
+#### Fluent API
 
-try{
-    const matchbox = new Matchbox(rules);
-} catch(e) {
-    console.error('Failed initializing matchbox');
-    process.exit(1);
-}
+```javascript
+const FluentFlow = require("fluentflow");
+const Fluent = FluentFlow.Fluent;
+const $ = Fluent.Matcher().starter;
+
+const objectFluent = Fluent.Object({
+    // register fields
+    'bar' : []
+});
+const currentObject = objectFluent.currentObject;
+const lastObject = objectFluent.lastObject;
+
+// Build the rules
+const builder = new FluentFlow.Matcher.Builder();
+builder.append(
+    $.match(currentObject.fieldNamed("bar").equals(5)).then(console.log).end(),
+    $.match(currentObject.fieldNamed("fooo").exists).then(console.log).end()
+);
+
+// Add rules to matcher
+const matcher = new FluentFlow.Matcher();
+matcher.addRules(builder.rules);
+
+// Match objects
+const objects = [
+    {"bar":2},
+    {"bar":5},
+    {"bar":7},
+    {"fooo":42}
+];
+
+objects.forEach(function(obj) {
+    matcher.matchNext(obj);
+});
+```
+#### Sandbox
+
+```javascript
+const FluentFlow = require("./modules");
+
+const rules =   '[                                                                      \
+                $.match(function(obj){return obj.bar===5;}).then(console.log).end(),    \
+                $.match(function(obj){return !!obj.fooo;}).then(console.log).end()      \
+                ]' ;
+
+const matchbox = new FluentFlow.Matchbox(rules);
 
 const objects = [
     {"bar":2},
@@ -84,81 +147,32 @@ objects.forEach(function(obj) {
 });
 ```
 
-Use it without sandbox:
-```
-const FluentFlow = require("fluentflow");
-const Fluent = FluentFlow.Fluent;
-const $ = Fluent.Matcher().starter;
-//The following 3 lines are only required if you want to use the fluent API to build matcher functions (e.g. `currentObject.field....exists.and....`)
-const ObjectFluent = Fluent.Object();
-const currentObject = ObjectFluent.currentObject;
-const lastObject = ObjectFluent.lastObject;
+## Quickstart
 
-const rules = [
-    $.match(function(obj){return obj.bar>3;}).then(console.log),
-    $.match(currentObject.fieldNamed("fooo").exists).then(console.log)
-];
+In the simplest case, you register a single matcher function (with `match`) which will be executed to check every object. With `then` you can specify a callback which will be executed if the rule matched.
 
-const builder = new FluentFlow.Matcher.Builder();
-for (var i in rules) {
-    builder.append(rules[i].end());
-}
-
-builder.printRules();
-
-const matcher = new FluentFlow.Matcher();
-matcher.addRules(builder.rules);
-
-const objects = [
-    {"bar":2},
-    {"bar":5},
-    {"bar":7},
-    {"fooo":42}
-];
-
-objects.forEach(function(obj) {
-    matcher.matchNext(obj);
-});
-
-//Output:
-// { bar: 5 }
-// { bar: 7 }
-// { fooo: 42 }
-
-```
-
-
-
-
-## Quickstart Rules
-
-In the simplest case, you register a single matcher function (with `match`) which will be executed to check every object.  
-With `then` you can specify a callback which will be executed if the rule matched.
-
-```
-$.match(function(object) { //add callback which is used to check for matches on every object
-        //Do some checks here on object struct
+```javascript
+$.match(function(object) { // add object checking callback 
+        // do some checks here
         return object.tcp && object.tcp.dstport==80; //return true on match
     }).then(function(object) {
-        console.log("Hey it matched",object);
+        console.log("Match!",object);
     });
 ```
 
-To build more interesting rules you can describe the behaviour by using `followedBy`.
-The second matcher function will have access to the object of the first match.
-An attached `then` function (at the end) will have access to both objects as well.
+Followed by relations can be described using the `followedBy` keyword. The callbacks registered with `match` or `then` will have access to previously matched objects.
 
-```
+```javascript
 $.match(function(object) {
-        //Do some checks here on object struct
+        // do some checks here
         return object.tcp && object.tcp.dstport==80; //return true on match
-    }).followedBy.match(function(object,lastobject){
+    }).followedBy.match(function(object, lastobject){
         //Do some checks here on object OR lastobject struct
         return object.http && object.ip.src==lastobject.ip.dst; //return true on match
-    })
+    }).then(function(obj2, obj1) {
+        console.log("Match!", obj1, obj2);
+    });
 ```
-
-In general the callbacks registered with `match` or `then` will get all objects of the previous matches (in the current chain) passed in, starting with the current object.
 
 ## Matching API
 
