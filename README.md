@@ -8,7 +8,6 @@ FluentFlow is matching engine which lets you easily define 'followed by'-relatio
 ## Command line interface
 
 ### Installation
-Install fluent flow globally
 ```shell
 $ sudo npm install -g fluentflow 
 ```
@@ -50,7 +49,6 @@ $ curl -s https://api.github.com/repos/t-moe/FluentFlow/events | fluentflow rule
 ## Library
 
 ### Installation
-Add fluentflow to your project
 ```shell
 $ npm install --save fluentflow 
 ```
