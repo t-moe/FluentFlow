@@ -193,7 +193,7 @@ A matcher function can also return `undefined` and submit the result async by in
 Takes one or multiple subchains and only contains with the following "rules" (`followedBy`), when one of the passed chain matched.
 
 Example:
-```
+```javascript
 $.oneOf( $.match(f1),
          $.match(f2).followedBy.match(f3)
        ).then(cb)
@@ -215,7 +215,7 @@ Example see below.
 Starts describing a new rule, which can only match once the previous rule has matched. The functions registered with `match` of the newly created rule will receive the objects that matched in the last rule as 2nd, 3rd, ... parameter.
 
 Example:
-```
+```javascript
 $.match(f1).followedBy.match(f2).then(cb)
 ```
 The final callback `cb` will only be called if `f1` matched followed by a object matching `f2`.
@@ -294,4 +294,6 @@ Instead of using `fieldNamed("tcp.dstport")` you can also use `field.tcp.dstport
 
 ## Unit tests
 
-```npm test```
+```shell
+$ npm test
+```
