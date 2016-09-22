@@ -73,8 +73,9 @@ module.exports = (function () {
             for (var fromWhere in pushFrom) {
               var params = pushFrom[fromWhere];
               log('before pushing from ' + fromWhere + ' to ' + toWhere, params);
-              for (var ind in params)
+              for (var ind in params) {
                 self.rules[toWhere].params.push(params[ind]);
+              }
               log('after pushing from ' + fromWhere + ' to ' + toWhere, params);
             }
           }

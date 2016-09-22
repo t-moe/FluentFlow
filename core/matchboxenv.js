@@ -1,5 +1,6 @@
-const Fluent = require(__dirname + '/fluent.js');
-const Matcher = require(__dirname + '/matcher.js');
+const path = require('path');
+const Fluent = require(path.join(__dirname, 'fluent.js'));
+const Matcher = require(path.join(__dirname, 'matcher.js'));
 
 'use strict';
 

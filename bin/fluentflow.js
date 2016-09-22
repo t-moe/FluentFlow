@@ -3,15 +3,17 @@
  * Created by timo on 2/26/16.
  */
 const fs = require('fs');
+const path = require('path');
 const argv = require('minimist')(process.argv.slice(2));
 const JSONStream = require('JSONStream');
 const es = require('event-stream');
-const Matchbox = require(__dirname + '/../core/matchbox.js');
+const Matchbox = require(path.join(__dirname, '..', 'core', 'matchbox.js'));
 
 var rulesRaw = '';
 
 function showHelp (ret) {
   console.log(
+    /* eslint-disable no-path-concat */
     'Usage: ' + __filename + ' [OPTIONS] rulesFile\n' +
     '\n' +
     'rulesFile          : path to the rules file\n' +
@@ -19,6 +21,7 @@ function showHelp (ret) {
     '   -j JSONPath     : JSONPath expression\n' +
     '   -t              : test if rules are valid\n' +
     '   -h              : print this help\n'
+    /* eslint-enable no-path-concat */
   );
   process.exit(ret);
 }

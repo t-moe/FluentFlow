@@ -1,5 +1,6 @@
 require('harmony-reflect');
 const fs = require('fs');
+const path = require('path');
 const util = require('util');
 const EventEmitter = require('events');
 const NodeVM = require('vm2').NodeVM;
@@ -7,7 +8,7 @@ const UglifyJS = require('uglify-js');
 
 'use strict';
 
-const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
+const MATCHBOX_ENV = path.join(__dirname, 'matchboxenv.js');
 const MATCHBOX_ENV_HIDDEN_PROPERTIES = [ 'load', 'setConsole' ];
 const MATCHBOX_ENV_CONSOLE_EMIT_FUNCIONS = [ 'log', 'error' ];
 
@@ -16,6 +17,7 @@ module.exports = function (rulesRaw, vmoptions) {
   vmoptions.require = vmoptions.require || {};
   vmoptions.require.external = true;
   vmoptions.require.root = __dirname;
+  vmoptions.require.builtin = (vmoptions.require) ? vmoptions.require.builtin || ['path'] : ['path'];
   //    builtin: (vmoptions.require) ? vmoptions.require.builtin || ['fs', 'path'] : [],
   // parse javascript code (check for errors)
   UglifyJS.parse(rulesRaw);
