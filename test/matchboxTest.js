@@ -18,7 +18,9 @@ exports.testMatchbox = function (test) {
   const matchbox = new Matchbox(RULES, {
     console: 'off'
   });
-  matchbox.matchNext(objs);
+  objs.forEach(function(obj){
+    matchbox.matchNext(obj);
+  });
   test.done();
 };
 
@@ -60,7 +62,9 @@ exports.testMatchboxNoVM = function (test) {
     novm: true, // disable vm
     console: 'off'
   });
-  matchbox.matchNext(objs);
+  objs.forEach(function(obj){
+    matchbox.matchNext(obj);
+  });
   test.done();
 };
 

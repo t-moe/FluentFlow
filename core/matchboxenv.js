@@ -3,31 +3,31 @@ const Matcher = require(__dirname + '/matcher.js');
 
 'use strict';
 
-/*eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 const $ = Fluent.Matcher().starter;
 const m = new Matcher();
 const objectFluent = Fluent.Object();
 const currentObject = objectFluent.currentObject;
 const lastObject = objectFluent.lastObject;
-/*eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 
 // move console to local scope, somehow we can not ovewrite global.console
 // might be node.js related
 var console = global.console;
 
-const self = {
+module.exports = {
   setConsole: function (newConsole) {
     console = newConsole;
   },
   load: function (rulesRaw) {
-    self.rulesRaw = rulesRaw || '';
-    self.rules = eval(self.rulesRaw); // eslint-disable-line no-eval
-    const builder = new Matcher.Builder();
-    if (!(self.rules instanceof Array)) {
+    rulesRaw = rulesRaw || '';
+    const rules = eval(rulesRaw); // eslint-disable-line no-eval
+    if (!(rules instanceof Array)) {
       throw new Error('No rules found');
     }
-    self.rules.forEach(function (r) {
-      if (self.rules instanceof Array) {
+    const builder = new Matcher.Builder();
+    rules.forEach(function (r) {
+      if (rules instanceof Array) {
         builder.append(r.end());
       }
     });
@@ -38,4 +38,3 @@ const self = {
   }
 };
 
-module.exports = self;
