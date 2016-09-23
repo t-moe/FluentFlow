@@ -1,11 +1,12 @@
 const fs = require('fs');
+const path = require('path');
 
 const CorePath = process.env.GPXPARSE_COV ? 'core-cov' : 'core';
-const Matchbox = require(__dirname + '/../' + CorePath + '/matchbox.js');
+const Matchbox = require(path.join(__dirname, '..', CorePath, 'matchbox.js'));
 
-const RULES = fs.readFileSync(__dirname + '/meta/stringRules.js', {encoding: 'utf-8'});
-const RULES_FAIL = fs.readFileSync(__dirname + '/meta/stringRules_fail.js', {encoding: 'utf-8'});
-const RULES_EMIT = fs.readFileSync(__dirname + '/meta/emitRules.js', {encoding: 'utf-8'});
+const RULES = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules.js'), {encoding: 'utf-8'});
+const RULES_FAIL = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules_fail.js'), {encoding: 'utf-8'});
+const RULES_EMIT = fs.readFileSync(path.join(__dirname, 'meta', 'emitRules.js'), {encoding: 'utf-8'});
 
 const objs = [
   {foo: 1},
@@ -18,7 +19,9 @@ exports.testMatchbox = function (test) {
   const matchbox = new Matchbox(RULES, {
     console: 'off'
   });
-  matchbox.matchNext(objs);
+  objs.forEach(function (obj) {
+    matchbox.matchNext(obj);
+  });
   test.done();
 };
 
@@ -60,7 +63,9 @@ exports.testMatchboxNoVM = function (test) {
     novm: true, // disable vm
     console: 'off'
   });
-  matchbox.matchNext(objs);
+  objs.forEach(function (obj) {
+    matchbox.matchNext(obj);
+  });
   test.done();
 };
 

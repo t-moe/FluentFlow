@@ -3,28 +3,28 @@
   "main": "modules.js",
   "version": "0.1.0",
   "scripts": {
-    "test": "node node_modules/semistandard/bin/cmd.js && node --harmony-proxies node_modules/nodeunit/bin/nodeunit",
+    "test": "node node_modules/semistandard/bin/cmd.js && node node_modules/nodeunit/bin/nodeunit",
     "format": "node node_modules/semistandard/bin/cmd.js -F || true",
-    "coverage": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov",
-    "coveralls": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node --harmony-proxies node_modules/nodeunit/bin/nodeunit --reporter=lcov | node node_modules/coveralls/bin/coveralls.js"
+    "coverage": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node node_modules/nodeunit/bin/nodeunit --reporter=lcov",
+    "coveralls": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node node_modules/nodeunit/bin/nodeunit --reporter=lcov | node node_modules/coveralls/bin/coveralls.js"
   },
   "dependencies": {
     "JSONStream": "^1.1.1",
     "deasync": "^0.1.4",
     "event-stream": "^3.3.2",
-    "eventemitter2": "^1.0.0",
+    "eventemitter2": "^2.1.3",
     "harmony-reflect": "^1.4.2",
     "mini-complete-assign": "0.0.1",
     "minimist": "^1.2.0",
     "uglify-js": "^2.6.2",
-    "vm2": "^2.0.0"
+    "vm2": "^3.1.0"
   },
   "devDependencies": {
     "coveralls": "^2.11.9",
     "jscoverage": "^0.6.0",
-    "nodeunit": "^0.9.1",
-    "semistandard": "^7.0.5",
-    "semistandard-format": "^2.1.0"
+    "nodeunit": "^0.10.2",
+    "semistandard": "^9.0.0",
+    "semistandard-format": "^3.0.0"
   },
   "license": "GPL-3.0",
   "description": "FluentFlow is matching engine which lets you easily define 'followed by'-relations in a flow of json objects. Rules can be written in javascript as plain functions or using a fluent API.",

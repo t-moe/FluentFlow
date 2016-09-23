@@ -1,4 +1,6 @@
 require('harmony-reflect');
+const fs = require('fs');
+const path = require('path');
 const util = require('util');
 const EventEmitter = require('events');
 const NodeVM = require('vm2').NodeVM;
@@ -6,15 +8,17 @@ const UglifyJS = require('uglify-js');
 
 'use strict';
 
-const MATCHBOX_ENV = __dirname + '/matchboxenv.js';
+const MATCHBOX_ENV = path.join(__dirname, 'matchboxenv.js');
 const MATCHBOX_ENV_HIDDEN_PROPERTIES = [ 'load', 'setConsole' ];
 const MATCHBOX_ENV_CONSOLE_EMIT_FUNCIONS = [ 'log', 'error' ];
+const MATCHBOX_ENV_BUILTINS = ['path'];
 
 module.exports = function (rulesRaw, vmoptions) {
   vmoptions = vmoptions || {};
-  vmoptions.require = true;
-  vmoptions.requireExternal = true;
-  vmoptions.requireNative = vmoptions.requireNative || ['fs', 'path'];
+  vmoptions.require = vmoptions.require || {};
+  vmoptions.require.external = true;
+  vmoptions.require.root = vmoptions.require.root || __dirname;
+  vmoptions.require.builtin = (vmoptions.require.builtin) ? vmoptions.require.builtin.concat(MATCHBOX_ENV_BUILTINS) : MATCHBOX_ENV_BUILTINS;
   // parse javascript code (check for errors)
   UglifyJS.parse(rulesRaw);
   if (!vmoptions.novm) {
@@ -29,15 +33,15 @@ module.exports = function (rulesRaw, vmoptions) {
         }
       }
     }
-    const matchbox = vm.run('module.exports = require(' + JSON.stringify(MATCHBOX_ENV) + ');', __filename); // JSON.stringify to escape backslashes on windows
-    vm.call(matchbox.load, rulesRaw);
+    const matchbox = vm.run(fs.readFileSync(MATCHBOX_ENV), __filename);
+    matchbox.load(rulesRaw);
     // delte all hidden properties
     MATCHBOX_ENV_HIDDEN_PROPERTIES.forEach(function (p) {
       delete matchbox[p];
     });
     return new Proxy(matchbox, {
       apply: function (target, thisArg, argumentsList) {
-        vm.call(thisArg[target], argumentsList);
+        thisArg[target](argumentsList);
       }
     });
   } else {

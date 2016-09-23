@@ -1,8 +1,9 @@
 /**
  * Created by Timo on 26.02.2016.
  */
+const path = require('path');
 var extend = require('mini-complete-assign');
-var Matcher = require(__dirname + '/matcher.js');
+var Matcher = require(path.join(__dirname, 'matcher.js'));
 
 'use strict';
 
@@ -292,7 +293,7 @@ var fluent2 = function () {
     }
   };
   intern.fluentActions = {
-    'match': function (rule_1, rule_2, rule_n) {
+    'match': function (rule1, rule2, ruleN) {
       var args = Array.prototype.slice.call(arguments);
       if (args.length === 0) throw new Error('You must provide at least one argument');
 
@@ -303,8 +304,8 @@ var fluent2 = function () {
 
       var rule = new Matcher.Rule();
       var startind = 0;
-      if (rule_1 instanceof Matcher.Rule) {
-        rule = rule_1;
+      if (rule1 instanceof Matcher.Rule) {
+        rule = rule1;
         startind = 1;
       }
       for (var i = startind; i < args.length; i++) {
@@ -322,7 +323,7 @@ var fluent2 = function () {
 
       return fluentReturn(this, intern.fluentTerminators);
     },
-    'oneOf': function (chain_1, chain_2, chain_n) {
+    'oneOf': function (chain1, chain2, chainN) {
       var args = Array.prototype.slice.call(arguments);
       if (args.length === 0) throw new Error('You must provide at least one argument');
 
