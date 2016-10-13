@@ -179,6 +179,7 @@ module.exports = (function () {
             var retVal = checker.apply(context, args);
           } catch (e) {
             error(e);
+            cb(e)
             return;
           }
 
