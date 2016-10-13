@@ -34,8 +34,8 @@ module.exports = {
     });
     m.addRules(builder.rules);
   },
-  matchNext: function (obj) {
-    m.matchNext(obj);
+  matchNext: function () {
+    m.matchNext.apply(this, arguments);
   }
 };
 
