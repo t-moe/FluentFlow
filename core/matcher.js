@@ -32,13 +32,25 @@ module.exports = (function () {
 
     var isMatching = false;
     this.matchNext = function (object, cb) {
-      if (cb !== undefined && typeof (cb) !== 'function') {
-        throw new Error('Second argument must be a function (optional)');
-      }
+      const isAsync = !!cb;
+      cb = cb || function () {};
+
       if (isMatching) {
         throw new Error('You cannot call matchNext while the previous call has not returned');
       }
       isMatching = true;
+
+      if (typeof (cb) !== 'function') {
+        throw new Error('Second argument must be a function (optional)');
+      }
+
+      var runntimeExceptions = [];
+      function addRunntimeException (e) {
+        error(e.toString());
+        runntimeExceptions.push(e);
+        if (!isAsync) throw e;
+      }
+
       log('new object', object);
 
       var pushTo = { };
@@ -80,9 +92,8 @@ module.exports = (function () {
             }
           }
           isMatching = false;
-          if (cb !== undefined) {
-            cb();
-          }
+          if (runntimeExceptions.length > 0) return cb(runntimeExceptions.join());
+          cb();
         }
       };
 
@@ -160,7 +171,7 @@ module.exports = (function () {
           var funcReturned = false; // var that says whether or not the checker function has yet returned (sync OR async !!)
           context.next = function (matched) {
             if (funcReturned) {
-              throw new Error('You can not call next() multiple times, or after you function returned a boolean.');
+              throw new Error('You can not call next() multiple times, or after you function returned a boolean');
             }
             funcReturned = true;
             if (matched === true) {
@@ -177,26 +188,22 @@ module.exports = (function () {
 
           try {
             var retVal = checker.apply(context, args);
+            if (typeof (retVal) === 'boolean') {
+              if (funcReturned) {
+                throw new Error('You cannot return a boolean, after you called next()');
+              }
+              context.next(retVal); // will decide what to do next and set funcReturned=true
+            } else if (typeof (retVal) === 'undefined') {
+              if (!funcReturned && !asyncMode) {
+                asyncMode = true;
+                asyncTasksStarted++;
+                asyncTasksRunning++;
+              }
+            } else {
+              throw new Error('Invalid return value of matcher function. must be boolean or undefined (async)');
+            }
           } catch (e) {
-            error(e);
-            cb(e)
-            return;
-          }
-
-          if (typeof (retVal) === 'boolean') {
-            if (funcReturned) {
-              throw new Error('You cannot return a boolean, after you called next()');
-            }
-            context.next(retVal); // will decide what to do next and set funcReturned=true
-          } else if (typeof (retVal) === 'undefined') {
-            if (!funcReturned && !asyncMode) {
-              asyncMode = true;
-              asyncTasksStarted++;
-              asyncTasksRunning++;
-            }
-          } else {
-            log(checker.toString());
-            throw new Error('Invalid return value of matcher function. must be boolean or undefined (async).');
+            return addRunntimeException(e);
           }
         };
 
@@ -235,7 +242,7 @@ module.exports = (function () {
 
       if (asyncTasksStarted === 0) { // No Async tasks ever started
         asyncDone();
-      } else if (isMatching && cb === undefined) { // Async tasks running and no callback specified
+      } else if (isMatching && !isAsync) { // Async tasks running and no callback specified
         deasync.loopWhile(function () {
           return isMatching; // continue deasync's loopWhile as long as async tasks are runnning
         });

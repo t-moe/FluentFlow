@@ -34,7 +34,7 @@ module.exports = {
     });
     m.addRules(builder.rules);
   },
-  matchNext: function(row, cb) {
+  matchNext: function (row, cb) {
     m.matchNext.apply(m, arguments);
   }
 };

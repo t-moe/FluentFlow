@@ -5,7 +5,9 @@ const CorePath = process.env.GPXPARSE_COV ? 'core-cov' : 'core';
 const Matchbox = require(path.join(__dirname, '..', CorePath, 'matchbox.js'));
 
 const RULES = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules.js'), {encoding: 'utf-8'});
-const RULES_FAIL = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules_fail.js'), {encoding: 'utf-8'});
+const RULES_FAIL_SYNTAX = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules_failSyntax.js'), {encoding: 'utf-8'});
+const RULES_FAIL_RUNNTIME1 = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules_failRunntime1.js'), {encoding: 'utf-8'});
+const RULES_FAIL_RUNNTIME2 = fs.readFileSync(path.join(__dirname, 'meta', 'stringRules_failRunntime2.js'), {encoding: 'utf-8'});
 const RULES_EMIT = fs.readFileSync(path.join(__dirname, 'meta', 'emitRules.js'), {encoding: 'utf-8'});
 
 const objs = [
@@ -25,9 +27,9 @@ exports.testMatchbox = function (test) {
   test.done();
 };
 
-exports.testMatchboxFail = function (test) {
+exports.testMatchboxFailSyntax = function (test) {
   test.throws(function () {
-    const matchbox = new Matchbox(RULES_FAIL, {
+    const matchbox = new Matchbox(RULES_FAIL_SYNTAX, {
       console: 'off'
     });
     test.fail(); // should never reach this line.
@@ -69,9 +71,9 @@ exports.testMatchboxNoVM = function (test) {
   test.done();
 };
 
-exports.testMatchboxFailNoVM = function (test) {
+exports.testMatchboxFailSyntaxNoVM = function (test) {
   test.throws(function () {
-    const matchbox = new Matchbox(RULES_FAIL, {
+    const matchbox = new Matchbox(RULES_FAIL_SYNTAX, {
       novm: true, // disable vm
       console: 'off'
     });
@@ -101,5 +103,53 @@ exports.testMatchboxEventsNoVM = function (test) {
   test.notEqual(matchbox, null);
   test.equal(log, 1);
   test.equal(error, 1);
+  test.done();
+};
+
+exports.testMatchboxMatchSyncRunntimeExceptionInMatch = function (test) {
+  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME1, {
+    console: 'off'
+  });
+  objs.forEach(function (obj) {
+    test.throws(function () {
+      matchbox.matchNext({});
+    });
+  });
+  test.done();
+};
+
+exports.testMatchboxMatchSyncRunntimeExceptionInThen = function (test) {
+  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME2, {
+    console: 'off'
+  });
+  objs.forEach(function (obj) {
+    test.throws(function () {
+      matchbox.matchNext({});
+    });
+  });
+  test.done();
+};
+
+exports.testMatchboxMatchAsyncRunntimeExceptionInMatch = function (test) {
+  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME1, {
+    console: 'off'
+  });
+  objs.forEach(function (obj) {
+    matchbox.matchNext({}, function (err) {
+      test.ok(err);
+    });
+  });
+  test.done();
+};
+
+exports.testMatchboxMatchAsyncRunntimeExceptionInThen = function (test) {
+  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME2, {
+    console: 'off'
+  });
+  objs.forEach(function (obj) {
+    matchbox.matchNext({}, function (err) {
+      test.ok(err);
+    });
+  });
   test.done();
 };
