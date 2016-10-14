@@ -207,6 +207,8 @@ Registers one or multiple function which will be called after the current "rule"
   
 If the functions take only one parameter, then they will only be called once, with the current object as argument. If the function takes multiple parameters then the function receives all previous objects as well, and will be called for every combination.
 
+The functions can return a blocker-function or an array of blocker functions. The matching will be delayed until all blocker functions returned false at least once.
+
 Example see below.
 
 **Available Members:** _followedBy_, _then_

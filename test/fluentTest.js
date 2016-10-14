@@ -36,7 +36,7 @@ exports.testFluentOneStep = function (test) {
   var f2 = function () {};
   var f3 = function () {};
 
-  t4.then([f2, f3]);
+  t4.then(f2, f3);
   test.deepEqual(x.actions, [f1, f2, f3]);
   test.deepEqual(y.actions, [f1, f2, f3]);
 

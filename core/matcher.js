@@ -115,11 +115,16 @@ module.exports = (function () {
         // Function that calls all callbacks of a ruleDef and pushes objects into following queues
         var afterMatch = function (params) {
           var copy = params.slice(); // make one copy for all action handlers
+          var blockers = [];
           for (var i in ruleDef.actions) { // foreach action handler
-            ruleDef.actions[i].apply(context, copy);
+            var blocker = [].concat(
+              ruleDef.actions[i].apply(context, copy) || function () { return false; }
+            );
+            if (blocker.some(function (b) { return typeof b !== 'function'; })) throw new Error('Blocker must be a function or array of functions');
+            blockers = blockers.concat(blocker);
           }
-          for (i in ruleDef.blockers) { // foreach blocker
-            deasync.loopWhile(ruleDef.blockers[i]);
+          for (i in blockers) { // foreach blocker
+            deasync.loopWhile(blockers[i]);
           }
           if (ruleDef.pushTo.length > 0) {
             for (var k in ruleDef.pushTo) {
@@ -253,14 +258,13 @@ module.exports = (function () {
     };
   };
 
-  obj.Rule = function (rule, action, blocker) {
+  obj.Rule = function (rule, action) {
     this.id = null; // The id of the rule (will be autofilled after calling addRules())
     this.conditional = false; // if set to true the rule will only be executed if there are params available
     this.autoCleanQueue = true; // if set to true the queue will be cleared of all elements that matched the rule.
     this.params = []; // params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
     this.checkers = rule ? [rule] : []; // rule check functions. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
     this.actions = action ? [action] : []; // action handler functions which will be called on match. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
-    this.blockers = blocker ? [blocker] : []; // blocker handler functions which will block until all of the blockers returned false at least once
     this.pushTo = []; // ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
   };
 
@@ -341,17 +345,6 @@ module.exports = (function () {
         for (var k in this.data) {
           var d = this.data[k];
           d.actions.push(f);
-        }
-      }
-    };
-
-    this.addBlocker = function () {
-      for (var i in arguments) {
-        var f = arguments[i];
-        if (typeof (f) !== 'function') throw new Error('argument must be a function');
-        for (var k in this.data) {
-          var d = this.data[k];
-          d.blockers.push(f);
         }
       }
     };

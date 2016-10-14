@@ -726,8 +726,6 @@ exports.testBlocker = function (test) {
   var cbCalled = false;
   var matchNextDone = false;
 
-  var blocking = true;
-
   var rules = {
     0: new Matcher.Rule(
       function (p) {
@@ -743,6 +741,8 @@ exports.testBlocker = function (test) {
         return true;
       },
       function (p) {
+        var blocking = true;
+
         deasync.sleep(10);
 
         test.ok(ruleMatched);
@@ -753,17 +753,17 @@ exports.testBlocker = function (test) {
 
         thenCalled = true;
         setTimeout(function () { blocking = false; }, 100);
-      },
-      function () {
-        deasync.sleep(10);
+        return function () {
+          deasync.sleep(10);
 
-        test.ok(ruleMatched);
-        test.ok(thenCalled);
-        test.ok(!cbCalled);
-        test.ok(!matchNextDone);
+          test.ok(ruleMatched);
+          test.ok(thenCalled);
+          test.ok(!cbCalled);
+          test.ok(!matchNextDone);
 
-        blockCalled = true;
-        return blocking;
+          blockCalled = true;
+          return blocking;
+        };
       }
     )
   };
