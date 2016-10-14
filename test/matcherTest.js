@@ -638,7 +638,7 @@ exports.testMatchSyncRunntimeErrorInMatch = function (test) {
   var rules = {
     0: new Matcher.Rule(
       function (p) {
-        0(); // runntime exception
+        0(); // runtime exception
       },
       function (p) { }
     )
@@ -661,7 +661,7 @@ exports.testMatchSyncRunntimeErrorInThen = function (test) {
         return true;
       },
       function (p) {
-        0(); // runntime exception
+        0(); // runtime exception
       }
     )
   };
@@ -680,7 +680,7 @@ exports.testMatchAsyncRunntimeErrorInMatch = function (test) {
   var rules = {
     0: new Matcher.Rule(
       function (p) {
-        0(); // runntime exception
+        0(); // runtime exception
       },
       function (p) { }
     )
@@ -703,7 +703,7 @@ exports.testMatchAsyncRunntimeErrorInThen = function (test) {
         return true;
       },
       function (p) {
-        0(); // runntime exception
+        0(); // runtime exception
       }
     )
   };
@@ -714,6 +714,82 @@ exports.testMatchAsyncRunntimeErrorInThen = function (test) {
   matcher.matchNext({}, function (err) {
     test.ok(err);
   });
+
+  test.done();
+};
+
+exports.testBlocker = function (test) {
+  var deasync = require('deasync');
+  var ruleMatched = false;
+  var thenCalled = false;
+  var blockCalled = false;
+  var cbCalled = false;
+  var matchNextDone = false;
+
+  var blocking = true;
+
+  var rules = {
+    0: new Matcher.Rule(
+      function (p) {
+        deasync.sleep(10);
+
+        test.ok(!ruleMatched);
+        test.ok(!thenCalled);
+        test.ok(!blockCalled);
+        test.ok(!cbCalled);
+        test.ok(!matchNextDone);
+
+        ruleMatched = true;
+        return true;
+      },
+      function (p) {
+        deasync.sleep(10);
+
+        test.ok(ruleMatched);
+        test.ok(!thenCalled);
+        test.ok(!blockCalled);
+        test.ok(!cbCalled);
+        test.ok(!matchNextDone);
+
+        thenCalled = true;
+        setTimeout(function () { blocking = false; }, 100);
+      },
+      function () {
+        deasync.sleep(10);
+
+        test.ok(ruleMatched);
+        test.ok(thenCalled);
+        test.ok(!cbCalled);
+        test.ok(!matchNextDone);
+
+        blockCalled = true;
+        return blocking;
+      }
+    )
+  };
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  matcher.matchNext({}, function () {
+    deasync.sleep(10);
+
+    test.ok(ruleMatched);
+    test.ok(thenCalled);
+    test.ok(blockCalled);
+    test.ok(!cbCalled);
+    test.ok(!matchNextDone);
+
+    cbCalled = true;
+  });
+  deasync.sleep(10);
+  matchNextDone = true;
+
+  test.ok(ruleMatched);
+  test.ok(thenCalled);
+  test.ok(blockCalled);
+  test.ok(cbCalled);
+  test.ok(matchNextDone);
 
   test.done();
 };

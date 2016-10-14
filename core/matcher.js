@@ -44,10 +44,10 @@ module.exports = (function () {
         throw new Error('Second argument must be a function (optional)');
       }
 
-      var runntimeExceptions = [];
-      function addRunntimeException (e) {
+      var runtimeExceptions = [];
+      function addRuntimeException (e) {
         error(e.toString());
-        runntimeExceptions.push(e);
+        runtimeExceptions.push(e);
         if (!isAsync) throw e;
       }
 
@@ -92,7 +92,7 @@ module.exports = (function () {
             }
           }
           isMatching = false;
-          if (runntimeExceptions.length > 0) return cb(runntimeExceptions.join());
+          if (runtimeExceptions.length > 0) return cb(runtimeExceptions.join());
           cb();
         }
       };
@@ -117,6 +117,9 @@ module.exports = (function () {
           var copy = params.slice(); // make one copy for all action handlers
           for (var i in ruleDef.actions) { // foreach action handler
             ruleDef.actions[i].apply(context, copy);
+          }
+          for (i in ruleDef.blockers) { // foreach blocker
+            deasync.loopWhile(ruleDef.blockers[i]);
           }
           if (ruleDef.pushTo.length > 0) {
             for (var k in ruleDef.pushTo) {
@@ -203,7 +206,7 @@ module.exports = (function () {
               throw new Error('Invalid return value of matcher function. must be boolean or undefined (async)');
             }
           } catch (e) {
-            return addRunntimeException(e);
+            return addRuntimeException(e);
           }
         };
 
@@ -250,13 +253,14 @@ module.exports = (function () {
     };
   };
 
-  obj.Rule = function (rule, action) {
+  obj.Rule = function (rule, action, blocker) {
     this.id = null; // The id of the rule (will be autofilled after calling addRules())
     this.conditional = false; // if set to true the rule will only be executed if there are params available
     this.autoCleanQueue = true; // if set to true the queue will be cleared of all elements that matched the rule.
     this.params = []; // params objects (one entry = array of matches along the chain), those params shall be passed down the chain and to the action handlers
     this.checkers = rule ? [rule] : []; // rule check functions. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
     this.actions = action ? [action] : []; // action handler functions which will be called on match. First parameter: Current Object, Second Parameter: array of the previous objects down the chain
+    this.blockers = blocker ? [blocker] : []; // blocker handler functions which will block until all of the blockers returned false at least once
     this.pushTo = []; // ruleid of rules to which params to push matches to. An entry "3" will push the all matches to the params of rule 3.
   };
 
@@ -337,6 +341,17 @@ module.exports = (function () {
         for (var k in this.data) {
           var d = this.data[k];
           d.actions.push(f);
+        }
+      }
+    };
+
+    this.addBlocker = function () {
+      for (var i in arguments) {
+        var f = arguments[i];
+        if (typeof (f) !== 'function') throw new Error('argument must be a function');
+        for (var k in this.data) {
+          var d = this.data[k];
+          d.blockers.push(f);
         }
       }
     };

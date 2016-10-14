@@ -275,12 +275,17 @@ var fluent2 = function () {
   intern.fluentTerminators = {
     'then': function () {
       var args = Array.prototype.slice.call(arguments);
-      if (args.length === 0) {
-        throw new Error('First argument must be a function');
-      }
+      var cbs = [].concat(args[0]);
+      var blockers = [].concat(args[1] || function () { return false; });
+      if (args.length === 0) throw new Error('You must provide at least one argument');
+      if (cbs.some(function (cb) { return typeof cb !== 'function'; })) throw new Error('First argument must be a function or array of functions');
+      if (blockers.some(function (blocker) { return typeof blocker !== 'function'; })) throw new Error('Second argument must be a function or array of functions');
       var lastStep = this.steps[this.steps.length - 1];
-      for (var i in args) {
-        lastStep.endSet.addAction(args[i]);
+      for (var i in cbs) {
+        lastStep.endSet.addAction(cbs[i]);
+      }
+      for (i in blockers) {
+        lastStep.endSet.addBlocker(blockers[i]);
       }
       return this;
     },
