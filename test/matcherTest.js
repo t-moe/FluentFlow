@@ -633,3 +633,87 @@ exports.testSet2 = function (test) {
 
   test.done();
 };
+
+exports.testMatchSyncRunntimeErrorInMatch = function (test) {
+  var rules = {
+    0: new Matcher.Rule(
+      function (p) {
+        0(); // runntime exception
+      },
+      function (p) { }
+    )
+  };
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  test.throws(function () {
+    matcher.matchNext({});
+  });
+
+  test.done();
+};
+
+exports.testMatchSyncRunntimeErrorInThen = function (test) {
+  var rules = {
+    0: new Matcher.Rule(
+      function (p) {
+        return true;
+      },
+      function (p) {
+        0(); // runntime exception
+      }
+    )
+  };
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  test.throws(function () {
+    matcher.matchNext({});
+  });
+
+  test.done();
+};
+
+exports.testMatchAsyncRunntimeErrorInMatch = function (test) {
+  var rules = {
+    0: new Matcher.Rule(
+      function (p) {
+        0(); // runntime exception
+      },
+      function (p) { }
+    )
+  };
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  matcher.matchNext({}, function (err) {
+    test.ok(err);
+  });
+
+  test.done();
+};
+
+exports.testMatchAsyncRunntimeErrorInThen = function (test) {
+  var rules = {
+    0: new Matcher.Rule(
+      function (p) {
+        return true;
+      },
+      function (p) {
+        0(); // runntime exception
+      }
+    )
+  };
+
+  var matcher = new Matcher();
+  matcher.addRules(rules);
+
+  matcher.matchNext({}, function (err) {
+    test.ok(err);
+  });
+
+  test.done();
+};
