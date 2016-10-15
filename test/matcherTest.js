@@ -1,6 +1,25 @@
 var CorePath = process.env.GPXPARSE_COV ? 'core-cov' : 'core';
 var Matcher = require('../' + CorePath + '/matcher.js');
 
+var pushAll = function(matcher, arr, cb) {
+  var i =0;
+  var pushNext = function() {
+    if(i<arr.length) {
+      matcher.matchNext(arr[i++],pushNext);
+    } else {
+      cb();
+    }
+  };
+  pushNext();
+};
+
+
+var saveArgs = function(arr,args) {
+  var argsWithoutCb = Array.prototype.slice.call(args);
+  argsWithoutCb.shift(); // remove cb
+  arr.push(argsWithoutCb);
+};
+
 exports.testMatches = function (test) {
   var pkt = [
     {foo: 1},
@@ -42,12 +61,10 @@ exports.testMatches = function (test) {
 
   test.deepEqual(matcher.rules, rules);
 
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-  }
-  test.deepEqual(matches, expectedMatches);
-
-  test.done();
+  pushAll(matcher,pkt,function(){
+    test.deepEqual(matches, expectedMatches);
+    test.done();
+  });
 };
 
 exports.testPushTo = function (test) {
@@ -86,18 +103,14 @@ exports.testPushTo = function (test) {
       return p.foo === 3;
     }, function (cb, p, lp) {
       test.equal(arguments.length, 3);
-      var argsWithoutCb = Array.prototype.slice.call(arguments);
-      argsWithoutCb.shift(); // remove cb
-      matches[2].push(argsWithoutCb);
+      saveArgs(matches[2],arguments);
       cb();
     }),
     3: new Matcher.Rule(function (p) {
       return p.bar === 88;
     }, function (cb, p, lp) {
       test.ok(arguments.length >= 3 && arguments.length <= 4);
-      var argsWithoutCb = Array.prototype.slice.call(arguments);
-      argsWithoutCb.shift(); // remove cb
-      matches[3].push(argsWithoutCb);
+      saveArgs(matches[3],arguments);
       cb();
     })
   };
@@ -129,12 +142,10 @@ exports.testPushTo = function (test) {
 
   test.deepEqual(matcher.rules, rules);
 
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-  }
-  test.deepEqual(matches, expectedMatches);
-
-  test.done();
+  pushAll(matcher,pkt,function(){
+    test.deepEqual(matches, expectedMatches);
+    test.done();
+  });
 };
 
 exports.testComplexMatch = function (test) {
@@ -157,33 +168,37 @@ exports.testComplexMatch = function (test) {
     0: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.foo === 1;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb,p) {
+      test.equal(arguments.length, 2);
       matches[0].push(p);
+      cb();
     }),
     1: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.bar !== undefined;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb, p) {
+      test.equal(arguments.length, 2);
       matches[1].push(p);
+      cb();
     }),
     2: new Matcher.Rule(function (object, lastObject) {
       test.equal(arguments.length, 2);
       matchArgs.push(Array.prototype.slice.call(arguments));
-      var cb = this.next;
+      var self = this;
       setTimeout(function () {
-        cb(object.foo === 3 && (lastObject.bar === undefined || object.bar === undefined || lastObject.bar + 4 === object.bar));
+        self.next(object.foo === 3 && (lastObject.bar === undefined || object.bar === undefined || lastObject.bar + 4 === object.bar));
       }, 0);
-    }, function (p, lp) {
-      test.equal(arguments.length, 2);
-      matches[2].push(Array.prototype.slice.call(arguments));
+    }, function (cb, p, lp) {
+      test.equal(arguments.length, 3);
+      saveArgs(matches[2],arguments);
+      cb();
     }),
     3: new Matcher.Rule(function (p) {
       return p.bar === 88;
-    }, function (p, lp) {
-      test.ok(arguments.length >= 2 && arguments.length <= 3);
-      matches[3].push(Array.prototype.slice.call(arguments));
+    }, function (cb, p, lp) {
+      test.ok(arguments.length >= 3 && arguments.length <= 4);
+      saveArgs(matches[3],arguments);
+      cb();
     })
   };
   rules[0].pushTo.push(2);
@@ -233,13 +248,11 @@ exports.testComplexMatch = function (test) {
 
   test.deepEqual(matcher.rules, rules);
 
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-  }
-  test.deepEqual(matches, expectedMatches);
-  test.deepEqual(matchArgs, expectedMatchArgs);
-
-  test.done();
+  pushAll(matcher,pkt,function(){
+    test.deepEqual(matches, expectedMatches);
+    test.deepEqual(matchArgs, expectedMatchArgs);
+    test.done();
+  });
 };
 
 exports.testMultiChecker = function (test) {
@@ -262,9 +275,10 @@ exports.testMultiChecker = function (test) {
     test.equal(arguments.length, 1);
     objs[0].push(p);
     return p.foo !== undefined;
-  }, function (p) {
-    test.equal(arguments.length, 1);
+  }, function (cb, p) {
+    test.equal(arguments.length, 2);
     objs[2].push(p);
+    cb();
   });
 
   rule0.checkers.push(function (p) {
@@ -280,9 +294,10 @@ exports.testMultiChecker = function (test) {
       test.equal(arguments.length, 2);
       objs[3].push(Array.prototype.slice.call(arguments));
       return p.bar !== undefined;
-    }, function (p, lp) {
-      test.equal(arguments.length, 2);
-      objs[4].push(Array.prototype.slice.call(arguments));
+    }, function (cb, p, lp) {
+      test.equal(arguments.length, 3);
+      saveArgs(objs[4],arguments);
+      cb();
     })
   };
   rules[1].conditional = true;
@@ -292,32 +307,32 @@ exports.testMultiChecker = function (test) {
 
   test.deepEqual(matcher.rules, rules);
 
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-  }
 
-  test.deepEqual(objs[0], pkt);
-  test.deepEqual(objs[1], [
-    {foo: 18},
-    {foo: 1},
-    {foo: 22},
-    {foo: 3, bar: 3},
-    {foo: 2},
-    {bar: 7, foo: 3}
-  ]);
-  test.deepEqual(objs[2], [
-    {foo: 1}
-  ]);
-  test.deepEqual(objs[3], [
-    [ {foo: 22}, {foo: 1} ],
-    [ {foo: 3, bar: 3}, {foo: 1} ]
-  ]);
 
-  test.deepEqual(objs[4], [
-    [ {foo: 3, bar: 3}, {foo: 1} ]
-  ]);
+  pushAll(matcher,pkt,function(){
+    test.deepEqual(objs[0], pkt);
+    test.deepEqual(objs[1], [
+      {foo: 18},
+      {foo: 1},
+      {foo: 22},
+      {foo: 3, bar: 3},
+      {foo: 2},
+      {bar: 7, foo: 3}
+    ]);
+    test.deepEqual(objs[2], [
+      {foo: 1}
+    ]);
+    test.deepEqual(objs[3], [
+      [ {foo: 22}, {foo: 1} ],
+      [ {foo: 3, bar: 3}, {foo: 1} ]
+    ]);
 
-  test.done();
+    test.deepEqual(objs[4], [
+      [ {foo: 3, bar: 3}, {foo: 1} ]
+    ]);
+
+    test.done();
+  });
 };
 
 exports.testMultiChecker2 = function (test) {
@@ -352,8 +367,9 @@ exports.testMultiChecker2 = function (test) {
     return p.owner === lp.id;
   });
 
-  rule1.actions.push(function (p, lp) {
+  rule1.actions.push(function (cb, p, lp) {
     objs.push([p, lp]);
+    cb();
   });
 
   rule1.conditional = true;
@@ -362,118 +378,35 @@ exports.testMultiChecker2 = function (test) {
   var matcher = new Matcher();
   matcher.addRules({ 0: rule0, 1: rule1 });
 
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-  }
+  pushAll(matcher,pkt,function() {
+    test.deepEqual(objs, [
+      [{spawn: 33, owner: 18}, {syscall: 91, id: 18}],
+      [{spawn: 1, owner: 20}, {syscall: 91, id: 20}]
+    ]);
 
-  test.deepEqual(objs, [
-    [{ spawn: 33, owner: 18 }, { syscall: 91, id: 18 }],
-    [{ spawn: 1, owner: 20 }, { syscall: 91, id: 20 }]
-  ]);
+    // Now we modify the checker function so that the queue is not automatically cleared. The rest stays the same.
 
-  // Now we modify the checker function so that the queue is not automatically cleared. The rest stays the same.
+    rule1.checkers[1] = function (p, lp) {
+      this.cleanCurrent = false; // this line is missing in the test above
+      return p.owner === lp.id;
+    };
 
-  rule1.checkers[1] = function (p, lp) {
-    this.cleanCurrent = false; // this line is missing in the test above
-    return p.owner === lp.id;
-  };
+    objs = [];
 
-  objs = [];
+    pushAll(matcher,pkt,function() {
+      console.log(objs);
+      test.deepEqual(objs, [
+        [{spawn: 33, owner: 18}, {syscall: 91, id: 18}],
+        [{spawn: 17, owner: 18}, {syscall: 91, id: 18}],
+        [{spawn: 33, owner: 18}, {syscall: 91, id: 18}],
+        [{spawn: 1, owner: 20}, {syscall: 91, id: 20}],
+        [{spawn: 13, owner: 20}, {syscall: 91, id: 20}],
+        [{spawn: 87, owner: 18}, {syscall: 91, id: 18}]
+      ]);
 
-  for (var j = 0; j < pkt.length; j++) {
-    matcher.matchNext(pkt[j]);
-  }
-
-  console.log(objs);
-
-  test.deepEqual(objs, [
-    [ { spawn: 33, owner: 18 }, { syscall: 91, id: 18 } ],
-    [ { spawn: 17, owner: 18 }, { syscall: 91, id: 18 } ],
-    [ { spawn: 33, owner: 18 }, { syscall: 91, id: 18 } ],
-    [ { spawn: 1, owner: 20 }, { syscall: 91, id: 20 } ],
-    [ { spawn: 13, owner: 20 }, { syscall: 91, id: 20 } ],
-    [ { spawn: 87, owner: 18 }, { syscall: 91, id: 18 } ]
-  ]);
-
-  test.done();
-};
-
-exports.testAsyncCheckerSynchronized = function (test) {
-  var pkt = [
-    {bar: 33},
-    {foo: 18},
-    {foo: 1},
-    {foo: 22},
-    {foo: 1, bar: 18},
-    {bar: 13}
-  ];
-
-  var ind = 0;
-  var ids = [];
-
-  var rule0 = new Matcher.Rule(function (p) {
-    var cb = this.next;
-    ids.push([10, ind++]);
-    setTimeout(function () {
-      ids.push([11, ind++]);
-      cb(p.foo !== undefined);
-    }, 1);
-  }, function (p) {
-    ids.push([40, ind++]);
+      test.done();
+    });
   });
-
-  rule0.checkers.push(function (p) {
-    ids.push([20, ind++]);
-    return p.foo === 1;
-  });
-  rule0.checkers.push(function (p) {
-    var cb = this.next;
-    ids.push([30, ind++]);
-    setTimeout(function () {
-      ids.push([31, ind++]);
-      cb(!!p.bar);
-    }, 1);
-  });
-
-  var matcher = new Matcher();
-  matcher.addRules([rule0]);
-
-  for (var i = 0; i < pkt.length; i++) {
-    matcher.matchNext(pkt[i]);
-    ids.push([50, ind++]);
-  }
-
-  test.deepEqual(ids, [
-    [ 10, 0 ], // {bar: 33}
-    [ 11, 1 ],
-    [ 50, 2 ],
-    [ 10, 3 ], // {foo: 18}
-    [ 11, 4 ],
-    [ 20, 5 ],
-    [ 50, 6 ],
-    [ 10, 7 ], // {foo: 1}
-    [ 11, 8 ],
-    [ 20, 9 ],
-    [ 30, 10 ],
-    [ 31, 11 ],
-    [ 50, 12 ],
-    [ 10, 13 ], // {foo: 22}
-    [ 11, 14 ],
-    [ 20, 15 ],
-    [ 50, 16 ],
-    [ 10, 17 ], // {foo: 1, bar:18}
-    [ 11, 18 ],
-    [ 20, 19 ],
-    [ 30, 20 ],
-    [ 31, 21 ],
-    [ 40, 22 ],
-    [ 50, 23 ],
-    [ 10, 24 ], // {bar: 13}
-    [ 11, 25 ],
-    [ 50, 26 ]
-  ]);
-
-  test.done();
 };
 
 exports.testAsyncCheckerCb = function (test) {
@@ -498,8 +431,9 @@ exports.testAsyncCheckerCb = function (test) {
       ids.push([11, ind++]);
       cb(p.foo !== undefined);
     }, 1);
-  }, function (p) {
+  }, function (cb, p) {
     ids.push([40, ind++]);
+    cb();
   });
 
   rule0.checkers.push(function (p) {
@@ -644,47 +578,6 @@ exports.testSet2 = function (test) {
   test.done();
 };
 
-exports.testMatchSyncRunntimeErrorInMatch = function (test) {
-  var rules = {
-    0: new Matcher.Rule(
-      function (p) {
-        0(); // runntime exception
-      },
-      function (p) { }
-    )
-  };
-
-  var matcher = new Matcher();
-  matcher.addRules(rules);
-
-  test.throws(function () {
-    matcher.matchNext({});
-  });
-
-  test.done();
-};
-
-exports.testMatchSyncRunntimeErrorInThen = function (test) {
-  var rules = {
-    0: new Matcher.Rule(
-      function (p) {
-        return true;
-      },
-      function (p) {
-        0(); // runntime exception
-      }
-    )
-  };
-
-  var matcher = new Matcher();
-  matcher.addRules(rules);
-
-  test.throws(function () {
-    matcher.matchNext({});
-  });
-
-  test.done();
-};
 
 exports.testMatchAsyncRunntimeErrorInMatch = function (test) {
   var rules = {
@@ -699,9 +592,11 @@ exports.testMatchAsyncRunntimeErrorInMatch = function (test) {
   var matcher = new Matcher();
   matcher.addRules(rules);
 
-  matcher.matchNext({}, function (err) {
-    test.ok(err);
-  });
+  for(var i=0; i<3; i++) {
+    matcher.matchNext({}, function (err) {
+      test.ok(err);
+    });
+  }
 
   test.done();
 };
@@ -721,9 +616,11 @@ exports.testMatchAsyncRunntimeErrorInThen = function (test) {
   var matcher = new Matcher();
   matcher.addRules(rules);
 
-  matcher.matchNext({}, function (err) {
-    test.ok(err);
-  });
+  for(var i=0; i<3; i++) {
+    matcher.matchNext({}, function (err) {
+      test.ok(err);
+    });
+  }
 
   test.done();
 };

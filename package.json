@@ -3,14 +3,13 @@
   "main": "modules.js",
   "version": "0.3.0",
   "scripts": {
-    "test": "node node_modules/semistandard/bin/cmd.js --verbose && node node_modules/nodeunit/bin/nodeunit",
+    "test": "node node_modules/semistandard/bin/cmd.js --verbose & node node_modules/nodeunit/bin/nodeunit",
     "format": "node node_modules/semistandard/bin/cmd.js -F || true",
     "coverage": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node node_modules/nodeunit/bin/nodeunit --reporter=lcov",
     "coveralls": "node node_modules/jscoverage/bin/jscoverage core && GPXPARSE_COV=1 node node_modules/nodeunit/bin/nodeunit --reporter=lcov | node node_modules/coveralls/bin/coveralls.js"
   },
   "dependencies": {
     "JSONStream": "^1.1.1",
-    "deasync": "^0.1.4",
     "event-stream": "^3.3.2",
     "eventemitter2": "^2.1.3",
     "harmony-reflect": "^1.4.2",

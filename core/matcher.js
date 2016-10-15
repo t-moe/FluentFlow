@@ -2,8 +2,6 @@
  * Created by Timo on 26.02.2016.
  */
 
-var deasync = require('deasync');
-
 module.exports = (function () {
   var log = function () {
     // Comment/uncomment for debug output
@@ -32,23 +30,19 @@ module.exports = (function () {
 
     var isMatching = false;
     this.matchNext = function (object, cb) {
-      const isAsync = !!cb;
-      cb = cb || function () {};
-
       if (isMatching) {
         throw new Error('You cannot call matchNext while the previous call has not returned');
       }
       isMatching = true;
 
       if (typeof (cb) !== 'function') {
-        throw new Error('Second argument must be a function (optional)');
+        throw new Error('Second argument must be a function');
       }
 
       var runtimeExceptions = [];
-      function addRunntimeException (e) {
+      function addRuntimeException (e) {
         error(e.toString());
         runtimeExceptions.push(e);
-        if (!isAsync) throw e;
       }
 
       log('new object', object);
@@ -68,16 +62,13 @@ module.exports = (function () {
         }
       };
 
-      var asyncTasksStarted = 0;
       var asyncTasksRunning = 0;
       var self = this;
       var asyncDone = function () {
-        if (asyncTasksStarted > 0) {
-          if (asyncTasksRunning === 0) {
-            throw new Error('AsyncDone called too many times');
-          }
-          asyncTasksRunning--;
+        if (asyncTasksRunning === 0) {
+          throw new Error('AsyncDone called too many times');
         }
+        asyncTasksRunning--;
 
         if (asyncTasksRunning === 0) {
           for (var toWhere in pushTo) {
@@ -140,6 +131,7 @@ module.exports = (function () {
         // Calls the callbacks and marks the async task's as finished
         var endCheck = function () {
           if (hasParam) {
+            asyncTasksRunning++;
             log('match on rule ' + ruleId + ' with param', param);
             // Call action, apply pushTo and unpushTo
             afterMatch(param, function () {
@@ -149,17 +141,14 @@ module.exports = (function () {
                   ruleDef.params.splice(i, 1); // remove argument from ruleDef because it matched
                 }
               }
-              if (asyncMode) {
-                asyncDone(); // mark rule check task as finished
-              }
+              asyncDone(); // mark rule check task as finished
             });
           } else {
             log('match on rule ' + ruleId);
             if (ruleDef.params.length === 0) { // No "Arguments" available. Call action only once. No cleaning afterwards
+              asyncTasksRunning++;
               afterMatch([object], function () {
-                if (asyncMode) {
-                  asyncDone(); // mark rule check task as finished
-                }
+                asyncDone(); // mark rule check task as finished
               });
             } else { // Arguments available. Call action once per argument
               var prevCleanCurrent = context.cleanCurrent;
@@ -170,19 +159,23 @@ module.exports = (function () {
                 context.current = par2remove;
                 var par = par2remove.slice(); // make a copy of it
                 par.unshift(object); // add object front
-                afterMatch(par, function () {
-                  if (context.cleanCurrent) {
-                    var k = ruleDef.params.indexOf(par2remove);
-                    if (k >= 0) { // param has not been removed by checker/action yet
-                      ruleDef.params.splice(k, 1); // remove argument from ruleDef because it matched
+                asyncTasksRunning++;
+                (function (par2remove) {
+                  afterMatch(par, function () {
+                    if (context.cleanCurrent) {
+                      var k = ruleDef.params.indexOf(par2remove);
+                      if (k >= 0) { // param has not been removed by checker/action yet
+                        ruleDef.params.splice(k, 1); // remove argument from ruleDef because it matched
+                      }
                     }
-                  }
-                  if (asyncMode) {
                     asyncDone(); // mark rule check task as finished
-                  }
-                });
+                  });
+                })(par2remove);
               }
             }
+          }
+          if (asyncMode) {
+            asyncDone(); // mark rule check task as finished
           }
         };
 
@@ -216,14 +209,13 @@ module.exports = (function () {
             } else if (typeof (retVal) === 'undefined') {
               if (!funcReturned && !asyncMode) {
                 asyncMode = true;
-                asyncTasksStarted++;
                 asyncTasksRunning++;
               }
             } else {
               throw new Error('Invalid return value of matcher function. must be boolean or undefined (async)');
             }
           } catch (e) {
-            return addRunntimeException(e);
+            return addRuntimeException(e);
           }
         };
 
@@ -253,20 +245,14 @@ module.exports = (function () {
         continueCheck(); // Start checking with the first checker
       };
 
+      asyncTasksRunning++;
       for (var ruleId in this.rules) { // foreach rule
         var ruleDef = this.rules[ruleId];
         if (!ruleDef.conditional || ruleDef.params.length > 0) { // Rule must be processed
           checkRule(ruleDef); // check one rule (async)
         }
       }
-
-      if (asyncTasksStarted === 0) { // No Async tasks ever started
-        asyncDone();
-      } else if (isMatching && !isAsync) { // Async tasks running and no callback specified
-        deasync.loopWhile(function () {
-          return isMatching; // continue deasync's loopWhile as long as async tasks are runnning
-        });
-      }
+      asyncDone();
     };
   };
 
