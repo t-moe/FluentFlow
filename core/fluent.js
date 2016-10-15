@@ -275,9 +275,9 @@ var fluent2 = function () {
   intern.fluentTerminators = {
     'then': function () {
       var args = Array.prototype.slice.call(arguments);
-      if (args.length === 0) {
-        throw new Error('First argument must be a function');
-      }
+
+      if (args.length === 0) throw new Error('You must provide at least one argument');
+      if (args.some(function (cb) { return typeof cb !== 'function'; })) throw new Error('Argument must be a all functions');
       var lastStep = this.steps[this.steps.length - 1];
       for (var i in args) {
         lastStep.endSet.addAction(args[i]);

@@ -44,10 +44,10 @@ module.exports = (function () {
         throw new Error('Second argument must be a function (optional)');
       }
 
-      var runntimeExceptions = [];
-      function addRunntimeException (e) {
+      var runtimeExceptions = [];
+      function addRuntimeException (e) {
         error(e.toString());
-        runntimeExceptions.push(e);
+        runtimeExceptions.push(e);
         if (!isAsync) throw e;
       }
 
@@ -92,7 +92,7 @@ module.exports = (function () {
             }
           }
           isMatching = false;
-          if (runntimeExceptions.length > 0) return cb(runntimeExceptions.join());
+          if (runtimeExceptions.length > 0) return cb(runtimeExceptions.join());
           cb();
         }
       };
@@ -115,8 +115,16 @@ module.exports = (function () {
         // Function that calls all callbacks of a ruleDef and pushes objects into following queues
         var afterMatch = function (params) {
           var copy = params.slice(); // make one copy for all action handlers
+          var blockers = [];
           for (var i in ruleDef.actions) { // foreach action handler
-            ruleDef.actions[i].apply(context, copy);
+            var blocker = [].concat(
+              ruleDef.actions[i].apply(context, copy) || function () { return false; }
+            );
+            if (blocker.some(function (b) { return typeof b !== 'function'; })) throw new Error('Blocker must be a function or array of functions');
+            blockers = blockers.concat(blocker);
+          }
+          for (i in blockers) { // foreach blocker
+            deasync.loopWhile(blockers[i]);
           }
           if (ruleDef.pushTo.length > 0) {
             for (var k in ruleDef.pushTo) {
@@ -203,7 +211,7 @@ module.exports = (function () {
               throw new Error('Invalid return value of matcher function. must be boolean or undefined (async)');
             }
           } catch (e) {
-            return addRunntimeException(e);
+            return addRuntimeException(e);
           }
         };
 
