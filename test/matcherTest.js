@@ -15,16 +15,18 @@ exports.testMatches = function (test) {
     0: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.foo >= 2;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb, p) {
+      test.equal(arguments.length, 2);
       matches[0].push(p);
+      cb();
     }),
     1: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.bar === 1 || p.foo === 1;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb, p) {
+      test.equal(arguments.length, 2);
       matches[1].push(p);
+      cb();
     })
 
   };
@@ -66,29 +68,37 @@ exports.testPushTo = function (test) {
     0: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.foo === 1;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb, p) {
+      test.equal(arguments.length, 2);
       matches[0].push(p);
+      cb();
     }),
     1: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.bar !== undefined;
-    }, function (p) {
-      test.equal(arguments.length, 1);
+    }, function (cb, p) {
+      test.equal(arguments.length, 2);
       matches[1].push(p);
+      cb();
     }),
     2: new Matcher.Rule(function (p) {
       test.equal(arguments.length, 1);
       return p.foo === 3;
-    }, function (p, lp) {
-      test.equal(arguments.length, 2);
-      matches[2].push(Array.prototype.slice.call(arguments));
+    }, function (cb, p, lp) {
+      test.equal(arguments.length, 3);
+      var argsWithoutCb = Array.prototype.slice.call(arguments);
+      argsWithoutCb.shift(); // remove cb
+      matches[2].push(argsWithoutCb);
+      cb();
     }),
     3: new Matcher.Rule(function (p) {
       return p.bar === 88;
-    }, function (p, lp) {
-      test.ok(arguments.length >= 2 && arguments.length <= 3);
-      matches[3].push(Array.prototype.slice.call(arguments));
+    }, function (cb, p, lp) {
+      test.ok(arguments.length >= 3 && arguments.length <= 4);
+      var argsWithoutCb = Array.prototype.slice.call(arguments);
+      argsWithoutCb.shift(); // remove cb
+      matches[3].push(argsWithoutCb);
+      cb();
     })
   };
   rules[0].pushTo.push(2);

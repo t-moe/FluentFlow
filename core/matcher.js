@@ -44,10 +44,10 @@ module.exports = (function () {
         throw new Error('Second argument must be a function (optional)');
       }
 
-      var runntimeExceptions = [];
+      var runtimeExceptions = [];
       function addRunntimeException (e) {
         error(e.toString());
-        runntimeExceptions.push(e);
+        runtimeExceptions.push(e);
         if (!isAsync) throw e;
       }
 
@@ -92,7 +92,7 @@ module.exports = (function () {
             }
           }
           isMatching = false;
-          if (runntimeExceptions.length > 0) return cb(runntimeExceptions.join());
+          if (runtimeExceptions.length > 0) return cb(runtimeExceptions.join());
           cb();
         }
       };
@@ -113,17 +113,27 @@ module.exports = (function () {
         };
 
         // Function that calls all callbacks of a ruleDef and pushes objects into following queues
-        var afterMatch = function (params) {
+        var afterMatch = function (params, cb) {
           var copy = params.slice(); // make one copy for all action handlers
-          for (var i in ruleDef.actions) { // foreach action handler
-            ruleDef.actions[i].apply(context, copy);
-          }
-          if (ruleDef.pushTo.length > 0) {
-            for (var k in ruleDef.pushTo) {
-              var toWhere = ruleDef.pushTo[k];
-              pushObjectTo(ruleId, toWhere, params.slice()); // make one copy per ruleDef
+          var currentHandlerIndex = 0;
+
+          var callNextHandler = function () {
+            if (currentHandlerIndex < ruleDef.actions.length) {
+              ruleDef.actions[currentHandlerIndex++].apply(context, copy);
+            } else if (currentHandlerIndex === ruleDef.actions.length) {
+              if (ruleDef.pushTo.length > 0) {
+                for (var k in ruleDef.pushTo) {
+                  var toWhere = ruleDef.pushTo[k];
+                  pushObjectTo(ruleId, toWhere, params.slice()); // make one copy per ruleDef
+                }
+              }
+              cb();
+            } else {
+              throw new Error('Callback called too many times');
             }
-          }
+          };
+          copy.unshift(callNextHandler);
+          callNextHandler();
         };
 
         // Function that will be called when all checker function's returned true
@@ -131,17 +141,26 @@ module.exports = (function () {
         var endCheck = function () {
           if (hasParam) {
             log('match on rule ' + ruleId + ' with param', param);
-            afterMatch(param); // Call action, apply pushTo and unpushTo
-            if (context.cleanCurrent) { // param must be removed
-              var i = ruleDef.params.indexOf(param2remove);
-              if (i >= 0) { // param has not been removed by checker/action yet
-                ruleDef.params.splice(i, 1); // remove argument from ruleDef because it matched
+            // Call action, apply pushTo and unpushTo
+            afterMatch(param, function () {
+              if (context.cleanCurrent) { // param must be removed
+                var i = ruleDef.params.indexOf(param2remove);
+                if (i >= 0) { // param has not been removed by checker/action yet
+                  ruleDef.params.splice(i, 1); // remove argument from ruleDef because it matched
+                }
               }
-            }
+              if (asyncMode) {
+                asyncDone(); // mark rule check task as finished
+              }
+            });
           } else {
             log('match on rule ' + ruleId);
             if (ruleDef.params.length === 0) { // No "Arguments" available. Call action only once. No cleaning afterwards
-              afterMatch([object]);
+              afterMatch([object], function () {
+                if (asyncMode) {
+                  asyncDone(); // mark rule check task as finished
+                }
+              });
             } else { // Arguments available. Call action once per argument
               var prevCleanCurrent = context.cleanCurrent;
               var copy = ruleDef.params.slice();
@@ -151,18 +170,19 @@ module.exports = (function () {
                 context.current = par2remove;
                 var par = par2remove.slice(); // make a copy of it
                 par.unshift(object); // add object front
-                afterMatch(par);
-                if (context.cleanCurrent) {
-                  var k = ruleDef.params.indexOf(par2remove);
-                  if (k >= 0) { // param has not been removed by checker/action yet
-                    ruleDef.params.splice(k, 1); // remove argument from ruleDef because it matched
+                afterMatch(par, function () {
+                  if (context.cleanCurrent) {
+                    var k = ruleDef.params.indexOf(par2remove);
+                    if (k >= 0) { // param has not been removed by checker/action yet
+                      ruleDef.params.splice(k, 1); // remove argument from ruleDef because it matched
+                    }
                   }
-                }
+                  if (asyncMode) {
+                    asyncDone(); // mark rule check task as finished
+                  }
+                });
               }
             }
-          }
-          if (asyncMode) {
-            asyncDone(); // mark rule check task as finished
           }
         };
 
