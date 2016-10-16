@@ -17,14 +17,22 @@ const objs = [
   {bar: 1}
 ];
 
+var pushAll = function (matchbox, arr, cb) {
+  var i = 0;
+  var pushNext = function () {
+    if (i < arr.length) {
+      matchbox.matchNext(arr[i++], pushNext);
+    } else {
+      cb();
+    }
+  };
+  pushNext();
+};
 exports.testMatchbox = function (test) {
   const matchbox = new Matchbox(RULES, {
     console: 'off'
   });
-  objs.forEach(function (obj) {
-    matchbox.matchNext(obj);
-  });
-  test.done();
+  pushAll(matchbox, objs, test.done);
 };
 
 exports.testMatchboxFailSyntax = function (test) {
@@ -65,10 +73,7 @@ exports.testMatchboxNoVM = function (test) {
     novm: true, // disable vm
     console: 'off'
   });
-  objs.forEach(function (obj) {
-    matchbox.matchNext(obj);
-  });
-  test.done();
+  pushAll(matchbox, objs, test.done);
 };
 
 exports.testMatchboxFailSyntaxNoVM = function (test) {
@@ -103,30 +108,6 @@ exports.testMatchboxEventsNoVM = function (test) {
   test.notEqual(matchbox, null);
   test.equal(log, 1);
   test.equal(error, 1);
-  test.done();
-};
-
-exports.testMatchboxMatchSyncRunntimeExceptionInMatch = function (test) {
-  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME1, {
-    console: 'off'
-  });
-  objs.forEach(function (obj) {
-    test.throws(function () {
-      matchbox.matchNext({});
-    });
-  });
-  test.done();
-};
-
-exports.testMatchboxMatchSyncRunntimeExceptionInThen = function (test) {
-  const matchbox = new Matchbox(RULES_FAIL_RUNNTIME2, {
-    console: 'off'
-  });
-  objs.forEach(function (obj) {
-    test.throws(function () {
-      matchbox.matchNext({});
-    });
-  });
   test.done();
 };
 
