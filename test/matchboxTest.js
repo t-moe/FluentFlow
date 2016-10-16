@@ -17,12 +17,11 @@ const objs = [
   {bar: 1}
 ];
 
-
-var pushAll = function(matchbox, arr, cb) {
-  var i =0;
-  var pushNext = function() {
-    if(i<arr.length) {
-      matchbox.matchNext(arr[i++],pushNext);
+var pushAll = function (matchbox, arr, cb) {
+  var i = 0;
+  var pushNext = function () {
+    if (i < arr.length) {
+      matchbox.matchNext(arr[i++], pushNext);
     } else {
       cb();
     }

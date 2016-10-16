@@ -34,8 +34,9 @@ Configure rules.js:
     }).followedBy.match(function(currentObject, lastObject){
         return currentObject.type == "IssuesEvent"
         && currentObject.actor.login == lastObject.actor.login;
-    }).then(function(fork, issue){
+    }).then(function(cb, fork, issue){
         console.log('User: ' + fork.actor.login + ' forked after writing issue: ' + issue.id);
+        cb();
     })
 ];
 ```
@@ -153,8 +154,9 @@ In the simplest case, you register a single matcher function (with `match`) whic
 $.match(function(object) { // add object checking callback 
         // do some checks here
         return object.tcp && object.tcp.dstport==80; //return true on match
-    }).then(function(object) {
+    }).then(function(cb, object) {
         console.log("Match!",object);
+        cb();
     });
 ```
 
@@ -167,8 +169,9 @@ $.match(function(object) {
     }).followedBy.match(function(object, lastobject){
         //Do some checks here on object OR lastobject struct
         return object.http && object.ip.src==lastobject.ip.dst; //return true on match
-    }).then(function(obj2, obj1) {
+    }).then(function(cb, obj2, obj1) {
         console.log("Match!", obj1, obj2);
+        cb();
     });
 ```
 
@@ -205,7 +208,7 @@ The final callback `cb` will only be called if either the first matching functio
 ### Function: then(func1, func2, ..., func_n)
 Registers one or multiple function which will be called after the current "rule" has matched.  
   
-If the functions take only one parameter, then they will only be called once, with the current object as argument. If the function takes multiple parameters then the function receives all previous objects as well, and will be called for every combination.
+The function receives a callback as first parameter which it must call.
 
 Example see below.
 

@@ -107,10 +107,29 @@ module.exports = (function () {
         var afterMatch = function (params, cb) {
           var copy = params.slice(); // make one copy for all action handlers
           var currentHandlerIndex = 0;
+          copy.unshift({}); // make room for callback as first argument
 
           var callNextHandler = function () {
+            var callbackCalled = false;
+            var callback = function () {
+              if (callbackCalled) {
+                addRuntimeException(new Error('You cannot call the callback multiple times'));
+              } else {
+                callbackCalled = true;
+                callNextHandler();
+              }
+            };
+
             if (currentHandlerIndex < ruleDef.actions.length) {
-              ruleDef.actions[currentHandlerIndex++].apply(context, copy);
+              copy[0] = callback; // set callback as first parameter
+              try {
+                ruleDef.actions[currentHandlerIndex++].apply(context, copy);
+              } catch (err) {
+                addRuntimeException(err);
+                if (!callbackCalled) {
+                  callback();
+                }
+              }
             } else if (currentHandlerIndex === ruleDef.actions.length) {
               if (ruleDef.pushTo.length > 0) {
                 for (var k in ruleDef.pushTo) {
@@ -119,11 +138,8 @@ module.exports = (function () {
                 }
               }
               cb();
-            } else {
-              throw new Error('Callback called too many times');
             }
           };
-          copy.unshift(callNextHandler);
           callNextHandler();
         };
 
@@ -199,23 +215,32 @@ module.exports = (function () {
             }
           };
 
+          var functionCallOk = false;
           try {
             var retVal = checker.apply(context, args);
+            functionCallOk = true;
+          } catch (e) {
+            addRuntimeException(e);
+            if (!funcReturned) {
+              context.next(false); // mark rule check as failed
+            }
+            return;
+          }
+          if (functionCallOk) {
             if (typeof (retVal) === 'boolean') {
               if (funcReturned) {
-                throw new Error('You cannot return a boolean, after you called next()');
+                addRuntimeException(new Error('You cannot return a boolean, after you called next()'));
+              } else {
+                context.next(retVal); // will decide what to do next and set funcReturned=true
               }
-              context.next(retVal); // will decide what to do next and set funcReturned=true
             } else if (typeof (retVal) === 'undefined') {
               if (!funcReturned && !asyncMode) {
                 asyncMode = true;
                 asyncTasksRunning++;
               }
             } else {
-              throw new Error('Invalid return value of matcher function. must be boolean or undefined (async)');
+              addRuntimeException(new Error('Invalid return value of matcher function. must be boolean or undefined (async)'));
             }
-          } catch (e) {
-            return addRuntimeException(e);
           }
         };
 
